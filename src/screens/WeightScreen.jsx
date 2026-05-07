@@ -1,23 +1,52 @@
+import { useState } from 'react';
 import { TYPE } from '../theme.js';
 import { AppBar, IconButton, Card, SectionHeader } from '../atoms.jsx';
 import { IconArrowLeft, IconMore, IconPlus } from '../icons.jsx';
 
-export function WeightScreen({ tweaks, theme, nav }) {
+export function WeightScreen({ tweaks, theme, nav, weightEntries = [], onLogWeight, profile }) {
   const { metric } = tweaks;
   const u = metric ? 'kg' : 'lb';
-  const weightData = [
-    { d: 'Apr 1', w: 72.4 },
-    { d: 'Apr 8', w: 71.8 },
-    { d: 'Apr 15', w: 71.0 },
-    { d: 'Apr 22', w: 70.2 },
-    { d: 'Apr 29', w: 69.4 },
-    { d: 'May 6', w: 68.6 },
-    { d: 'Today', w: 68.4 },
-  ];
-  const start = 72.4, current = 68.4, goal = 58.8;
-  const lost = (start - current).toFixed(1);
-  const remaining = (current - goal).toFixed(1);
-  const pct = ((start - current) / (start - goal)) * 100;
+  const [showLogModal, setShowLogModal] = useState(false);
+  const [inputVal, setInputVal] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const toDisplay = kg => metric ? kg : +(kg * 2.20462).toFixed(1);
+
+  const weightData = weightEntries.length >= 2
+    ? weightEntries.slice(-7).map((e, i, arr) => ({
+      d: i === arr.length - 1 ? 'Today' : new Date(e.date).toLocaleDateString('en', { month: 'short', day: 'numeric' }),
+      w: toDisplay(e.weight_kg),
+    }))
+    : [
+      { d: 'Apr 1', w: toDisplay(72.4) },
+      { d: 'Apr 8', w: toDisplay(71.8) },
+      { d: 'Apr 15', w: toDisplay(71.0) },
+      { d: 'Apr 22', w: toDisplay(70.2) },
+      { d: 'Apr 29', w: toDisplay(69.4) },
+      { d: 'May 6', w: toDisplay(68.6) },
+      { d: 'Today', w: toDisplay(68.4) },
+    ];
+
+  const currentKg = weightEntries.length ? weightEntries[weightEntries.length - 1].weight_kg : 68.4;
+  const startKg = profile?.start_weight || (weightEntries.length ? weightEntries[0].weight_kg : 72.4);
+  const goalKg = profile?.goal_weight || 58.8;
+
+  const current = toDisplay(currentKg);
+  const start = toDisplay(startKg);
+  const goal = toDisplay(goalKg);
+  const lost = Math.abs(start - current).toFixed(1);
+  const remaining = Math.abs(current - goal).toFixed(1);
+  const pct = startKg !== goalKg ? Math.min(100, ((startKg - currentKg) / (startKg - goalKg)) * 100) : 0;
+
+  async function handleLog() {
+    const kg = metric ? parseFloat(inputVal) : parseFloat(inputVal) / 2.20462;
+    if (!kg || isNaN(kg)) return;
+    setSaving(true);
+    if (onLogWeight) await onLogWeight(+kg.toFixed(2));
+    setSaving(false);
+    setInputVal('');
+    setShowLogModal(false);
+  }
 
   return (
     <div style={{ background: theme.bg, color: theme.text, minHeight: '100%', paddingBottom: 24 }}>
@@ -125,7 +154,7 @@ export function WeightScreen({ tweaks, theme, nav }) {
       </div>
 
       <div style={{ padding: '20px 16px 0' }}>
-        <button style={{
+        <button onClick={() => setShowLogModal(true)} style={{
           width: '100%', padding: '14px 18px', borderRadius: 14,
           background: theme.surface, border: `1px solid ${theme.border}`,
           color: theme.text, ...TYPE.sans, fontSize: 14, fontWeight: 500,
@@ -134,6 +163,41 @@ export function WeightScreen({ tweaks, theme, nav }) {
           <IconPlus size={16} /> Log weight
         </button>
       </div>
+
+      {showLogModal && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)',
+          display: 'flex', alignItems: 'flex-end', justifyContent: 'center', zIndex: 50,
+        }} onClick={() => setShowLogModal(false)}>
+          <div onClick={e => e.stopPropagation()} style={{
+            background: theme.bg, width: '100%', borderRadius: '20px 20px 0 0',
+            border: `1px solid ${theme.border}`, padding: '24px 22px 36px',
+          }}>
+            <div style={{ ...TYPE.display, fontSize: 22, color: theme.text, marginBottom: 16 }}>Log weight</div>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+              <input
+                type="number" step="0.1" min="20" max="300"
+                value={inputVal} onChange={e => setInputVal(e.target.value)}
+                placeholder={`Weight in ${u}`}
+                style={{
+                  flex: 1, padding: '13px 14px', borderRadius: 12,
+                  background: theme.surface, border: `1px solid ${theme.border}`,
+                  color: theme.text, ...TYPE.sans, fontSize: 16, outline: 'none',
+                }}
+              />
+              <span style={{ ...TYPE.mono, fontSize: 16, color: theme.textDim }}>{u}</span>
+            </div>
+            <button onClick={handleLog} disabled={saving || !inputVal} style={{
+              marginTop: 16, width: '100%', padding: '14px 18px', borderRadius: 14,
+              background: theme.accent, color: theme.bg, border: 'none',
+              ...TYPE.sans, fontSize: 14, fontWeight: 600, cursor: 'pointer',
+              opacity: !inputVal || saving ? 0.6 : 1,
+            }}>
+              {saving ? 'Saving…' : 'Save'}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

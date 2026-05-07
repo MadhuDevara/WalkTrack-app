@@ -7,11 +7,11 @@ import {
   IconShield, IconLock, IconTrophy, IconScale, IconChart, IconUsers, IconBolt,
 } from '../icons.jsx';
 
-export function ProfileScreen({ tweaks, theme, nav }) {
+export function ProfileScreen({ tweaks, theme, nav, onSignOut, profile }) {
   const [showPremium, setShowPremium] = useState(false);
-  const displayName = tweaks.userName || 'You';
+  const displayName = profile?.display_name || tweaks.userName || 'You';
   const initial = displayName[0].toUpperCase();
-  const joinDate = tweaks.joinDate || 'Recently';
+  const joinDate = profile?.join_date || tweaks.joinDate || 'Recently';
 
   return (
     <div style={{ background: theme.bg, color: theme.text, minHeight: '100%', paddingBottom: 24 }}>
@@ -78,7 +78,7 @@ export function ProfileScreen({ tweaks, theme, nav }) {
           <SettingRow theme={theme} icon={<IconBell size={16} />} label="Notifications" sub="Goal, friends, reminders" />
           <SettingRow theme={theme} icon={<IconHeart size={16} />} label="Connected health" sub="Google Fit · Wear OS" />
           <SettingRow theme={theme} icon={<IconShield size={16} />} label="Privacy" sub="Who sees your activity" />
-          <SettingRow theme={theme} icon={<IconLock size={16} />} label="Account" sub="maya.chen@…" last />
+          <SettingRow theme={theme} icon={<IconLock size={16} />} label="Account" sub="Tap to sign out" last onClick={onSignOut} />
         </Card>
       </div>
 
@@ -103,9 +103,9 @@ function LifeCell({ theme, label, value, top, border }) {
   );
 }
 
-function SettingRow({ theme, icon, label, sub, last }) {
+function SettingRow({ theme, icon, label, sub, last, onClick }) {
   return (
-    <div style={{
+    <div onClick={onClick} style={{
       display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px',
       borderTop: last ? `1px solid ${theme.border}` : 'none',
       borderBottom: !last ? `1px solid ${theme.border}` : 'none',

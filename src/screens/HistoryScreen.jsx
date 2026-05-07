@@ -3,20 +3,33 @@ import { TYPE } from '../theme.js';
 import { AppBar, IconButton, Card, SectionHeader, BarChart, Pill } from '../atoms.jsx';
 import { IconCalendar, IconMap, IconFlame, IconCheck, IconStar, IconArrowUp } from '../icons.jsx';
 
-export function HistoryScreen({ tweaks, theme }) {
+export function HistoryScreen({ tweaks, theme, stepsHistory = [] }) {
   const { metric, stepGoal } = tweaks;
   const [tab, setTab] = useState('week');
 
+  const toShortDay = (dateStr) => new Date(dateStr).toLocaleDateString('en-US', { weekday: 'short' }).slice(0, 1);
+  const byDate = [...stepsHistory].sort((a, b) => a.date.localeCompare(b.date));
+  const last7 = byDate.slice(-7);
   const week = {
-    labels: ['M', 'T', 'W', 'T', 'F', 'S', 'S'],
-    data: [8420, 7842, 11240, 9180, 12300, 14820, 6240],
-    highlight: 1,
+    labels: last7.length > 0 ? last7.map((d) => toShortDay(d.date)) : ['M', 'T', 'W', 'T', 'F', 'S', 'S'],
+    data: last7.length > 0 ? last7.map((d) => d.steps ?? 0) : [8420, 7842, 11240, 9180, 12300, 14820, 6240],
+    highlight: last7.length > 0 ? last7.length - 1 : 1,
   };
+
+  const last28 = byDate.slice(-28);
+  const monthBuckets = [];
+  if (last28.length > 0) {
+    for (let i = 0; i < 4; i += 1) {
+      const chunk = last28.slice(i * 7, i * 7 + 7);
+      monthBuckets.push(chunk.reduce((sum, d) => sum + (d.steps ?? 0), 0));
+    }
+  }
   const month = {
     labels: ['W1', 'W2', 'W3', 'W4'],
-    data: [62400, 71200, 84300, 76840],
-    highlight: 2,
+    data: monthBuckets.length === 4 ? monthBuckets : [62400, 71200, 84300, 76840],
+    highlight: monthBuckets.length === 4 ? 3 : 2,
   };
+
   const view = tab === 'week' ? week : month;
   const total = view.data.reduce((a, b) => a + b, 0);
   const avg = Math.round(total / view.data.length);

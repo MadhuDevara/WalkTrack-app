@@ -18,7 +18,7 @@ function getTodayLabel() {
   return new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
 }
 
-export function HomeScreen({ tweaks, theme, nav }) {
+export function HomeScreen({ tweaks, theme, nav, stepsHistory = [] }) {
   const { currentSteps, stepGoal, metric, showWeightPanel, userName } = tweaks;
   const displayName = userName || 'there';
   const initial = displayName[0].toUpperCase();
@@ -26,6 +26,11 @@ export function HomeScreen({ tweaks, theme, nav }) {
   const calories = Math.round(currentSteps * 0.04);
   const minutes = Math.round(currentSteps / 110);
   const remaining = Math.max(0, stepGoal - currentSteps);
+
+  const weeklyReal = stepsHistory.slice(-7).map((row) => row.steps ?? 0);
+  const weeklyAvg = weeklyReal.length > 0
+    ? Math.round(weeklyReal.reduce((sum, s) => sum + s, 0) / weeklyReal.length)
+    : null;
 
   const hourly = [120, 0, 0, 0, 0, 0, 80, 340, 920, 540, 380, 720, 880, 460, 290, 540, 820, 1100, 540, 260, 80, 0, 0, 0];
   const hourlyShown = hourly.slice(0, 18);
@@ -76,7 +81,7 @@ export function HomeScreen({ tweaks, theme, nav }) {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           <StatCard theme={theme} label="Distance"
             value={metric ? distanceKm : (distanceKm * 0.621371).toFixed(2)}
-            unit={metric ? 'km' : 'mi'} sub="↑ 0.4 vs avg"
+            unit={metric ? 'km' : 'mi'} sub={weeklyAvg ? `avg ${weeklyAvg.toLocaleString()} steps` : 'syncing...'}
             icon={<IconMap size={16} />} />
           <StatCard theme={theme} label="Calories" value={calories} unit="kcal"
             sub={`${Math.round(calories * 0.6)} active`}
