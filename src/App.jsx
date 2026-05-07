@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useTheme, TYPE } from './theme.js';
 import { BottomNav } from './atoms.jsx';
 import { HomeScreen } from './screens/HomeScreen.jsx';
@@ -9,6 +9,7 @@ import { AchievementsScreen } from './screens/AchievementsScreen.jsx';
 import { FriendsScreen } from './screens/FriendsScreen.jsx';
 import { ProfileScreen } from './screens/ProfileScreen.jsx';
 import { OnboardingScreen } from './screens/OnboardingScreen.jsx';
+import { useStepCounter } from './hooks/useStepCounter.js';
 
 const TWEAK_DEFAULTS = {
   palette: ['#0F1B14', '#34D399', '#F5F1EA', '#A8D5A2'],
@@ -79,6 +80,14 @@ export default function App() {
     setTweaksState(prev => ({ ...prev, [key]: value }));
   }, []);
 
+  // Real hardware step counter — adds to today's total continuously
+  const { steps: sensorSteps, permission, requestPermission } = useStepCounter(tweaks.hasOnboarded);
+  const baseSteps = useRef(tweaks.currentSteps);
+  useEffect(() => {
+    if (sensorSteps === 0) return;
+    setTweaksState(prev => ({ ...prev, currentSteps: baseSteps.current + sensorSteps }));
+  }, [sensorSteps]);
+
   const nav = (s) => setScreen(s);
 
   const screens = {
@@ -133,7 +142,8 @@ export default function App() {
         <DeviceShell theme={theme} dark={tweaks.dark}>
           <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: theme.bg, color: theme.text }}>
             <div className="stride-scroll" style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
-              <Cur tweaks={tweaks} theme={theme} nav={nav} setTweak={setTweak} app={{ screen, setScreen }} />
+              <Cur tweaks={tweaks} theme={theme} nav={nav} setTweak={setTweak}
+                app={{ screen, setScreen }} sensorPermission={permission} requestSensorPermission={requestPermission} />
             </div>
             {showBottomNav && (
               <BottomNav active={navMap[screen] || screen} theme={theme}

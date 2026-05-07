@@ -2,21 +2,32 @@ import { useState, useEffect } from 'react';
 import { TYPE } from '../theme.js';
 import { AppBar, IconButton, SectionHeader, Card, Pill } from '../atoms.jsx';
 import { IconArrowLeft, IconX, IconPause, IconPlay, IconBolt } from '../icons.jsx';
+import { useStepCounter } from '../hooks/useStepCounter.js';
 
-export function WalkScreen({ tweaks, theme, nav }) {
+export function WalkScreen({ tweaks, theme, nav, sensorPermission, requestSensorPermission }) {
   const { metric } = tweaks;
-  const [running, setRunning] = useState(true);
-  const [elapsed, setElapsed] = useState(842);
-  const [steps, setSteps] = useState(1284);
+  const [running, setRunning] = useState(false);
+  const [elapsed, setElapsed] = useState(0);
 
+  const { steps, permission, requestPermission, reset } = useStepCounter(running);
+  const effectivePermission = sensorPermission || permission;
+  const effectiveRequest = requestSensorPermission || requestPermission;
+
+  // Timer
   useEffect(() => {
     if (!running) return;
-    const id = setInterval(() => {
-      setElapsed(e => e + 1);
-      setSteps(s => s + Math.floor(Math.random() * 3 + 1));
-    }, 1000);
+    const id = setInterval(() => setElapsed(e => e + 1), 1000);
     return () => clearInterval(id);
   }, [running]);
+
+  const handleStart = async () => {
+    if (effectivePermission === 'prompt') {
+      await effectiveRequest();
+    }
+    reset();
+    setElapsed(0);
+    setRunning(true);
+  };
 
   const fmtTime = (s) => {
     const h = Math.floor(s / 3600);
@@ -101,8 +112,20 @@ export function WalkScreen({ tweaks, theme, nav }) {
         </Card>
       </div>
 
+      {/* Permission prompt */}
+      {effectivePermission === 'prompt' && !running && (
+        <div style={{ margin: '0 16px 12px', padding: '14px 16px', borderRadius: 14, background: theme.accentSoft, border: `1px solid ${theme.borderStrong}`, ...TYPE.sans, fontSize: 13, color: theme.text }}>
+          📱 This app needs access to your phone's motion sensor to count real steps.
+        </div>
+      )}
+      {effectivePermission === 'denied' && (
+        <div style={{ margin: '0 16px 12px', padding: '14px 16px', borderRadius: 14, background: theme.warmSoft, border: `1px solid ${theme.warm}`, ...TYPE.sans, fontSize: 13, color: theme.text }}>
+          ⚠️ Motion access denied. Enable it in your browser settings to count real steps.
+        </div>
+      )}
+
       <div style={{ padding: '24px 16px 20px', display: 'flex', gap: 12, alignItems: 'center', justifyContent: 'center' }}>
-        <button onClick={() => nav('home')} style={{
+        <button onClick={() => { setRunning(false); reset(); nav('home'); }} style={{
           width: 56, height: 56, borderRadius: '50%',
           background: theme.surface, border: `1px solid ${theme.border}`,
           color: theme.danger, cursor: 'pointer',
@@ -110,7 +133,7 @@ export function WalkScreen({ tweaks, theme, nav }) {
         }}>
           <IconX size={20} />
         </button>
-        <button onClick={() => setRunning(r => !r)} style={{
+        <button onClick={() => running ? setRunning(false) : handleStart()} style={{
           flex: 1, height: 60, borderRadius: 30,
           background: running ? theme.accent : theme.surface,
           border: running ? 'none' : `1px solid ${theme.borderStrong}`,
@@ -120,7 +143,7 @@ export function WalkScreen({ tweaks, theme, nav }) {
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
         }}>
           {running ? <IconPause size={18} /> : <IconPlay size={18} />}
-          {running ? 'Pause' : 'Resume'}
+          {running ? 'Pause' : (elapsed > 0 ? 'Resume' : 'Start Walk')}
         </button>
         <button style={{
           width: 56, height: 56, borderRadius: '50%',
