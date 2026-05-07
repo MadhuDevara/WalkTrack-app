@@ -64,10 +64,17 @@ export default function App() {
   const [screen, setScreen] = useState(() =>
     loadFromStorage().hasOnboarded ? 'home' : 'onboarding'
   );
-  const [tweaksOpen, setTweaksOpen] = useState(false);
+  const [isMobileViewport, setIsMobileViewport] = useState(
+    () => (typeof window !== 'undefined' ? window.innerWidth <= 900 : false),
+  );
   const theme = useTheme(tweaks.dark, tweaks.palette);
 
-  // Persist all settings to localStorage whenever they change
+  useEffect(() => {
+    const onResize = () => setIsMobileViewport(window.innerWidth <= 900);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
   useEffect(() => {
     try {
       const { currentSteps, ...settings } = tweaks;
@@ -108,12 +115,15 @@ export default function App() {
   return (
     <div style={{
       fontFamily: '"Inter Tight", system-ui, sans-serif',
-      background: '#f5f1ea',
-      backgroundImage: 'radial-gradient(900px 600px at 10% 0%, #ebe3d4 0%, transparent 60%), radial-gradient(900px 700px at 90% 100%, #e2d8c4 0%, transparent 60%)',
+      background: isMobileViewport ? theme.bg : '#f5f1ea',
+      backgroundImage: isMobileViewport
+        ? 'none'
+        : 'radial-gradient(900px 600px at 10% 0%, #ebe3d4 0%, transparent 60%), radial-gradient(900px 700px at 90% 100%, #e2d8c4 0%, transparent 60%)',
       minHeight: '100vh',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      padding: '32px 16px', boxSizing: 'border-box',
-      color: '#1c2418',
+      padding: isMobileViewport ? 0 : '32px 16px',
+      boxSizing: 'border-box',
+      color: isMobileViewport ? theme.text : '#1c2418',
     }}>
       <style>{`
         html, body { margin: 0; padding: 0; height: 100%; }
@@ -138,9 +148,9 @@ export default function App() {
         }
       `}</style>
 
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 32, flexWrap: 'wrap' }}>
-        <DeviceShell theme={theme} dark={tweaks.dark}>
-          <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: theme.bg, color: theme.text }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 32, flexWrap: 'wrap', width: '100%' }}>
+        {isMobileViewport ? (
+          <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', width: '100%', background: theme.bg, color: theme.text }}>
             <div className="stride-scroll" style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
               <Cur tweaks={tweaks} theme={theme} nav={nav} setTweak={setTweak}
                 app={{ screen, setScreen }} sensorPermission={permission} requestSensorPermission={requestPermission} />
@@ -150,27 +160,41 @@ export default function App() {
                 onChange={(id) => { if (id === 'walk') setScreen('walk'); else setScreen(id); }} />
             )}
           </div>
-        </DeviceShell>
+        ) : (
+          <>
+            <DeviceShell theme={theme} dark={tweaks.dark}>
+              <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: theme.bg, color: theme.text }}>
+                <div className="stride-scroll" style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
+                  <Cur tweaks={tweaks} theme={theme} nav={nav} setTweak={setTweak} app={{ screen, setScreen }} />
+                </div>
+                {showBottomNav && (
+                  <BottomNav active={navMap[screen] || screen} theme={theme}
+                    onChange={(id) => { if (id === 'walk') setScreen('walk'); else setScreen(id); }} />
+                )}
+              </div>
+            </DeviceShell>
 
-        <div style={{ maxWidth: 240, color: '#3a3528' }}>
-          <div style={{ ...TYPE.sans, fontSize: 11, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#7a715f' }}>Stride · v0.1</div>
-          <div style={{ ...TYPE.serif, fontSize: 22, lineHeight: 1.25, color: '#1c2418', marginTop: 8, fontStyle: 'italic' }}>
-            A premium wellness step counter for the long walk.
-          </div>
-          <div style={{ ...TYPE.sans, fontSize: 12, color: '#5a5447', marginTop: 12, lineHeight: 1.6 }}>
-            Eight screens, one continuous flow. Tap the floating <strong>walk</strong> button to start a session, the avatar for profile, or use the panel below to toggle palette, goals, and live progress.
-          </div>
-          <div style={{ marginTop: 16, padding: '12px 14px', background: 'rgba(31,60,41,0.06)', borderRadius: 12, border: '1px solid rgba(31,60,41,0.1)' }}>
-            <div style={{ ...TYPE.sans, fontSize: 10.5, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#7a715f' }}>Try this</div>
-            <ul style={{ ...TYPE.sans, fontSize: 12, color: '#3a3528', margin: '6px 0 0 0', padding: '0 0 0 16px', lineHeight: 1.6 }}>
-              <li>Drag the steps slider → ring fills live</li>
-              <li>Profile → Stride Premium opens the upsell sheet</li>
-              <li>Live Walk auto-counts seconds & steps</li>
-            </ul>
-          </div>
+            <div style={{ maxWidth: 240, color: '#3a3528' }}>
+              <div style={{ ...TYPE.sans, fontSize: 11, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#7a715f' }}>Stride · v0.1</div>
+              <div style={{ ...TYPE.serif, fontSize: 22, lineHeight: 1.25, color: '#1c2418', marginTop: 8, fontStyle: 'italic' }}>
+                A premium wellness step counter for the long walk.
+              </div>
+              <div style={{ ...TYPE.sans, fontSize: 12, color: '#5a5447', marginTop: 12, lineHeight: 1.6 }}>
+                Eight screens, one continuous flow. Tap the floating <strong>walk</strong> button to start a session, the avatar for profile, or use the panel below to toggle palette, goals, and live progress.
+              </div>
+              <div style={{ marginTop: 16, padding: '12px 14px', background: 'rgba(31,60,41,0.06)', borderRadius: 12, border: '1px solid rgba(31,60,41,0.1)' }}>
+                <div style={{ ...TYPE.sans, fontSize: 10.5, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#7a715f' }}>Try this</div>
+                <ul style={{ ...TYPE.sans, fontSize: 12, color: '#3a3528', margin: '6px 0 0 0', padding: '0 0 0 16px', lineHeight: 1.6 }}>
+                  <li>Drag the steps slider → ring fills live</li>
+                  <li>Profile → Stride Premium opens the upsell sheet</li>
+                  <li>Live Walk auto-counts seconds & steps</li>
+                </ul>
+              </div>
 
-          <TweaksPanel tweaks={tweaks} setTweak={setTweak} screen={screen} setScreen={setScreen} />
-        </div>
+              <TweaksPanel tweaks={tweaks} setTweak={setTweak} screen={screen} setScreen={setScreen} />
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

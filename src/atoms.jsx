@@ -79,10 +79,16 @@ export function BottomNav({ active, onChange, theme }) {
   ];
   return (
     <div style={{
+      position: 'sticky',
+      bottom: 0,
+      zIndex: 50,
       background: theme.surface,
-      borderTop: `1px solid ${theme.border}`,
-      display: 'flex', alignItems: 'center', justifyContent: 'space-around',
-      padding: '10px 6px 6px', gap: 2,
+      borderTop: `1px solid ${theme.borderStrong}`,
+      boxShadow: `0 -10px 30px rgba(0,0,0,0.18)`,
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      minHeight: 56,
+      padding: '6px 8px calc(6px + env(safe-area-inset-bottom))',
+      gap: 6,
     }}>
       {items.map(it => {
         const isActive = active === it.id;
@@ -92,11 +98,12 @@ export function BottomNav({ active, onChange, theme }) {
               border: 'none', cursor: 'pointer',
               background: theme.accent,
               color: theme.bg,
-              width: 56, height: 56, borderRadius: '50%',
+              width: 48, height: 48, borderRadius: '50%',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               boxShadow: `0 6px 18px ${theme.accentSoft}`,
-              marginTop: -16,
+              marginTop: -12,
               transition: 'transform 200ms',
+              flex: '0 0 48px',
             }}>{it.icon}</button>
           );
         }
@@ -104,12 +111,23 @@ export function BottomNav({ active, onChange, theme }) {
           <button key={it.id} onClick={() => onChange(it.id)} style={{
             background: 'transparent', border: 'none', cursor: 'pointer',
             display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
-            color: isActive ? theme.accent : theme.textMuted,
-            padding: '6px 10px', minWidth: 56,
+            color: isActive ? theme.accent : theme.textDim,
+            padding: '4px 2px',
+            flex: '1 1 0',
+            minWidth: 0,
+            height: 44,
+            justifyContent: 'center',
             ...TYPE.sans,
           }}>
             {it.icon}
-            <span style={{ fontSize: 10, letterSpacing: '0.04em', fontWeight: isActive ? 600 : 500 }}>{it.label}</span>
+            <span style={{
+              fontSize: 9.5,
+              lineHeight: 1,
+              letterSpacing: '0.02em',
+              fontWeight: isActive ? 650 : 550,
+              textAlign: 'center',
+              whiteSpace: 'nowrap',
+            }}>{it.label}</span>
           </button>
         );
       })}
