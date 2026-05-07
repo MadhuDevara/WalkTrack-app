@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useTheme, TYPE } from './theme.js';
 import { BottomNav } from './atoms.jsx';
 import { HomeScreen } from './screens/HomeScreen.jsx';
@@ -13,12 +13,39 @@ import { OnboardingScreen } from './screens/OnboardingScreen.jsx';
 const TWEAK_DEFAULTS = {
   palette: ['#0F1B14', '#34D399', '#F5F1EA', '#A8D5A2'],
   stepGoal: 10000,
-  currentSteps: 7842,
+  currentSteps: 0,
   dark: true,
   metric: true,
   showWeightPanel: true,
-  hasOnboarded: true,
+  hasOnboarded: false,
+  userName: '',
+  startWeight: 0,
+  goalWeight: 0,
+  joinDate: '',
 };
+
+function loadFromStorage() {
+  try {
+    const saved = localStorage.getItem('stride:settings');
+    if (saved) return { ...TWEAK_DEFAULTS, ...JSON.parse(saved) };
+  } catch (_) {}
+  return TWEAK_DEFAULTS;
+}
+
+function getTodayKey() {
+  return 'stride:steps:' + new Date().toISOString().slice(0, 10);
+}
+
+function loadTodaySteps() {
+  try {
+    const v = localStorage.getItem(getTodayKey());
+    return v ? parseInt(v, 10) : 0;
+  } catch (_) { return 0; }
+}
+
+function saveTodaySteps(steps) {
+  try { localStorage.setItem(getTodayKey(), String(steps)); } catch (_) {}
+}
 
 const PALETTES = [
   ['#0F1B14', '#34D399', '#F5F1EA', '#A8D5A2'],
@@ -29,10 +56,24 @@ const PALETTES = [
 ];
 
 export default function App() {
-  const [tweaks, setTweaksState] = useState(TWEAK_DEFAULTS);
-  const [screen, setScreen] = useState(TWEAK_DEFAULTS.hasOnboarded ? 'home' : 'onboarding');
+  const [tweaks, setTweaksState] = useState(() => {
+    const saved = loadFromStorage();
+    return { ...saved, currentSteps: loadTodaySteps() };
+  });
+  const [screen, setScreen] = useState(() =>
+    loadFromStorage().hasOnboarded ? 'home' : 'onboarding'
+  );
   const [tweaksOpen, setTweaksOpen] = useState(false);
   const theme = useTheme(tweaks.dark, tweaks.palette);
+
+  // Persist all settings to localStorage whenever they change
+  useEffect(() => {
+    try {
+      const { currentSteps, ...settings } = tweaks;
+      localStorage.setItem('stride:settings', JSON.stringify(settings));
+      saveTodaySteps(currentSteps);
+    } catch (_) {}
+  }, [tweaks]);
 
   const setTweak = useCallback((key, value) => {
     setTweaksState(prev => ({ ...prev, [key]: value }));

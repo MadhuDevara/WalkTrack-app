@@ -9,6 +9,9 @@ import {
 
 export function ProfileScreen({ tweaks, theme, nav }) {
   const [showPremium, setShowPremium] = useState(false);
+  const displayName = tweaks.userName || 'You';
+  const initial = displayName[0].toUpperCase();
+  const joinDate = tweaks.joinDate || 'Recently';
 
   return (
     <div style={{ background: theme.bg, color: theme.text, minHeight: '100%', paddingBottom: 24 }}>
@@ -25,9 +28,9 @@ export function ProfileScreen({ tweaks, theme, nav }) {
           margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center',
           ...TYPE.serif, fontSize: 36, color: theme.bg, fontWeight: 500,
           border: `3px solid ${theme.bg}`, boxShadow: `0 0 0 2px ${theme.accent}`,
-        }}>M</div>
-        <div style={{ ...TYPE.display, fontSize: 24, color: theme.text, marginTop: 12 }}>Maya Chen</div>
-        <div style={{ ...TYPE.sans, fontSize: 13, color: theme.textDim, marginTop: 2 }}>Joined April 2026 · Level 12</div>
+        }}>{initial}</div>
+        <div style={{ ...TYPE.display, fontSize: 24, color: theme.text, marginTop: 12 }}>{displayName}</div>
+        <div style={{ ...TYPE.sans, fontSize: 13, color: theme.textDim, marginTop: 2 }}>Joined {joinDate} · Level 1</div>
         <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginTop: 10 }}>
           <Pill theme={theme} tone="accent" icon={<IconLeaf size={11} />}>Trailblazer</Pill>
           <Pill theme={theme} tone="warm" icon={<IconFire size={11} />}>28 day streak</Pill>

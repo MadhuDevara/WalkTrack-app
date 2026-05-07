@@ -9,7 +9,7 @@ import {
 export function OnboardingScreen({ tweaks, theme, nav, setTweak }) {
   const [step, setStep] = useState(0);
   const [data, setData] = useState({
-    weight: 72, goalWeight: 60, target: 10000, why: null, pace: 'moderate',
+    name: '', weight: 72, goalWeight: 60, target: 10000, why: null,
   });
 
   const set = (k, v) => setData(d => ({ ...d, [k]: v }));
@@ -19,6 +19,11 @@ export function OnboardingScreen({ tweaks, theme, nav, setTweak }) {
       title: 'Welcome to Stride',
       subtitle: 'Walk your way to a healthier you',
       body: <WelcomeStep theme={theme} />,
+    },
+    {
+      title: "What's your name?",
+      subtitle: 'So we can personalise your experience',
+      body: <NameStep theme={theme} value={data.name} onChange={(v) => set('name', v)} />,
     },
     {
       title: 'Your why',
@@ -88,6 +93,10 @@ export function OnboardingScreen({ tweaks, theme, nav, setTweak }) {
         <button onClick={() => {
           if (last) {
             setTweak('stepGoal', data.target);
+            setTweak('userName', data.name.trim() || 'You');
+            setTweak('startWeight', data.weight);
+            setTweak('goalWeight', data.goalWeight);
+            setTweak('joinDate', new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }));
             setTweak('hasOnboarded', true);
             nav('home');
           } else {
@@ -102,6 +111,31 @@ export function OnboardingScreen({ tweaks, theme, nav, setTweak }) {
           {last ? 'Begin walking' : 'Continue'}
           <IconArrowRight size={18} />
         </button>
+      </div>
+    </div>
+  );
+}
+
+function NameStep({ theme, value, onChange }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 24, paddingTop: 16 }}>
+      <input
+        type="text"
+        placeholder="Your first name"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        autoFocus
+        style={{
+          width: '100%', padding: '18px 20px', borderRadius: 16, boxSizing: 'border-box',
+          border: `1.5px solid ${value ? theme.accent : theme.border}`,
+          background: theme.surface, color: theme.text,
+          ...TYPE.display, fontSize: 28,
+          outline: 'none', textAlign: 'center',
+          transition: 'border-color 200ms',
+        }}
+      />
+      <div style={{ ...TYPE.serif, fontSize: 14, fontStyle: 'italic', color: theme.textDim }}>
+        This is how we'll greet you every day
       </div>
     </div>
   );

@@ -7,8 +7,21 @@ import {
   IconDroplet, IconHeart, IconLeaf,
 } from '../icons.jsx';
 
+function getGreeting() {
+  const h = new Date().getHours();
+  if (h < 12) return 'Good morning';
+  if (h < 17) return 'Good afternoon';
+  return 'Good evening';
+}
+
+function getTodayLabel() {
+  return new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+}
+
 export function HomeScreen({ tweaks, theme, nav }) {
-  const { currentSteps, stepGoal, metric, showWeightPanel } = tweaks;
+  const { currentSteps, stepGoal, metric, showWeightPanel, userName } = tweaks;
+  const displayName = userName || 'there';
+  const initial = displayName[0].toUpperCase();
   const distanceKm = (currentSteps * 0.00076).toFixed(2);
   const calories = Math.round(currentSteps * 0.04);
   const minutes = Math.round(currentSteps / 110);
@@ -24,10 +37,10 @@ export function HomeScreen({ tweaks, theme, nav }) {
         leading={
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             <span style={{ ...TYPE.sans, fontSize: 11, letterSpacing: '0.18em', color: theme.textDim, textTransform: 'uppercase' }}>
-              Tuesday · May 7
+              {getTodayLabel()}
             </span>
             <span style={{ ...TYPE.serif, fontSize: 20, color: theme.text, fontStyle: 'italic' }}>
-              Good morning, Maya
+              {getGreeting()}, {displayName}
             </span>
           </div>
         }
@@ -40,7 +53,7 @@ export function HomeScreen({ tweaks, theme, nav }) {
                 background: `linear-gradient(135deg, ${theme.accent}, ${theme.warm})`,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 ...TYPE.sans, fontSize: 12, fontWeight: 600, color: theme.bg,
-              }}>M</div>
+              }}>{initial}</div>
             </IconButton>
           </>
         }
