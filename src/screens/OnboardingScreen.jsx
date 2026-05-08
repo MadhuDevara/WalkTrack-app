@@ -6,7 +6,7 @@ import {
   IconScale, IconLeaf, IconHeart, IconUsers, IconFootprint,
 } from '../icons.jsx';
 
-export function OnboardingScreen({ tweaks, theme, nav, setTweak }) {
+export function OnboardingScreen({ tweaks, theme, nav, setTweak, onUpdateProfile }) {
   const [step, setStep] = useState(0);
   const [data, setData] = useState({
     name: '', weight: 72, goalWeight: 60, target: 10000, why: null,
@@ -90,7 +90,7 @@ export function OnboardingScreen({ tweaks, theme, nav, setTweak }) {
             <IconArrowLeft size={18} />
           </button>
         )}
-        <button onClick={() => {
+        <button onClick={async () => {
           if (last) {
             setTweak('stepGoal', data.target);
             setTweak('userName', data.name.trim() || 'You');
@@ -98,6 +98,15 @@ export function OnboardingScreen({ tweaks, theme, nav, setTweak }) {
             setTweak('goalWeight', data.goalWeight);
             setTweak('joinDate', new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }));
             setTweak('hasOnboarded', true);
+            if (onUpdateProfile) {
+              await onUpdateProfile({
+                display_name: data.name.trim() || 'You',
+                step_goal: data.target,
+                start_weight: data.weight,
+                goal_weight: data.goalWeight,
+                join_date: new Date().toISOString().slice(0, 10),
+              });
+            }
             nav('home');
           } else {
             setStep(s => s + 1);

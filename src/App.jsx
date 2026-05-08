@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useTheme, TYPE } from './theme.js';
 import { BottomNav } from './atoms.jsx';
 import { HomeScreen } from './screens/HomeScreen.jsx';
@@ -9,7 +9,12 @@ import { AchievementsScreen } from './screens/AchievementsScreen.jsx';
 import { FriendsScreen } from './screens/FriendsScreen.jsx';
 import { ProfileScreen } from './screens/ProfileScreen.jsx';
 import { OnboardingScreen } from './screens/OnboardingScreen.jsx';
-import { useStepCounter } from './hooks/useStepCounter.js';
+import { AuthScreen } from './screens/AuthScreen.jsx';
+import { usePedometer } from './hooks/usePedometer.js';
+import { useAuth } from './hooks/useAuth.js';
+import { useSupabaseSteps } from './hooks/useSupabaseSteps.js';
+import { useWeight } from './hooks/useWeight.js';
+import { useFriends } from './hooks/useFriends.js';
 
 const TWEAK_DEFAULTS = {
   palette: ['#0F1B14', '#34D399', '#F5F1EA', '#A8D5A2'],
@@ -57,17 +62,62 @@ const PALETTES = [
 ];
 
 export default function App() {
+  const { session, profile, signUp, signIn, signOut, updateProfile, loading: authLoading } = useAuth();
+  const darkTheme = useTheme(true, TWEAK_DEFAULTS.palette);
+
+  if (authLoading) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0F1B14' }}>
+        <div style={{ color: '#34D399', fontFamily: 'system-ui', fontSize: 14 }}>Loading…</div>
+      </div>
+    );
+  }
+
+  if (!session) {
+    async function handleAuth(mode, email, password, name) {
+      return mode === 'signup' ? signUp(email, password, name) : signIn(email, password);
+    }
+    return (
+      <div style={{ fontFamily: '"Inter Tight", system-ui, sans-serif', minHeight: '100vh', background: darkTheme.bg }}>
+        <div style={{ maxWidth: 420, margin: '0 auto', minHeight: '100vh' }}>
+          <AuthScreen theme={darkTheme} onAuth={handleAuth} />
+        </div>
+      </div>
+    );
+  }
+
+  return <MainApp session={session} profile={profile} signOut={signOut} updateProfile={updateProfile} />;
+}
+
+function MainApp({ session, profile, signOut, updateProfile }) {
+  const userId = session.user.id;
+
   const [tweaks, setTweaksState] = useState(() => {
     const saved = loadFromStorage();
     return { ...saved, currentSteps: loadTodaySteps() };
   });
-  const [screen, setScreen] = useState(() =>
-    loadFromStorage().hasOnboarded ? 'home' : 'onboarding'
-  );
+  const [screen, setScreen] = useState('home');
   const [isMobileViewport, setIsMobileViewport] = useState(
     () => (typeof window !== 'undefined' ? window.innerWidth <= 900 : false),
   );
   const theme = useTheme(tweaks.dark, tweaks.palette);
+
+  useEffect(() => {
+    if (!profile) return;
+    setTweaksState(prev => ({
+      ...prev,
+      userName: profile.display_name || prev.userName,
+      stepGoal: profile.step_goal ?? prev.stepGoal,
+      metric: profile.metric ?? prev.metric,
+      dark: profile.dark ?? prev.dark,
+      palette: profile.palette ?? prev.palette,
+      startWeight: profile.start_weight ?? prev.startWeight,
+      goalWeight: profile.goal_weight ?? prev.goalWeight,
+      joinDate: profile.join_date || prev.joinDate,
+      hasOnboarded: !!profile.start_weight,
+    }));
+    setScreen(profile.start_weight ? 'home' : 'onboarding');
+  }, [profile]);
 
   useEffect(() => {
     const onResize = () => setIsMobileViewport(window.innerWidth <= 900);
@@ -87,15 +137,38 @@ export default function App() {
     setTweaksState(prev => ({ ...prev, [key]: value }));
   }, []);
 
-  // Real hardware step counter — adds to today's total continuously
-  const { steps: sensorSteps, permission, requestPermission } = useStepCounter(tweaks.hasOnboarded);
-  const baseSteps = useRef(tweaks.currentSteps);
+  const { steps: liveSteps, permission, requestPermission } = usePedometer(tweaks.hasOnboarded);
   useEffect(() => {
-    if (sensorSteps === 0) return;
-    setTweaksState(prev => ({ ...prev, currentSteps: baseSteps.current + sensorSteps }));
-  }, [sensorSteps]);
+    setTweaksState(prev => prev.currentSteps === liveSteps ? prev : { ...prev, currentSteps: liveSteps });
+  }, [liveSteps]);
+
+  const { history: stepsHistory } = useSupabaseSteps(userId, tweaks.currentSteps);
+  const { entries: weightEntries, logWeight } = useWeight(userId);
+  const { friends, pending, loading: friendsLoading, sendFriendRequest, acceptRequest, declineRequest } = useFriends(userId);
 
   const nav = (s) => setScreen(s);
+
+  const showBottomNav = !['onboarding', 'walk'].includes(screen);
+  const navMap = { home: 'home', history: 'history', friends: 'friends', profile: 'profile', weight: 'home', achievements: 'profile' };
+
+  const screenProps = {
+    tweaks, theme, nav, setTweak,
+    app: { screen, setScreen },
+    sensorPermission: permission,
+    requestSensorPermission: requestPermission,
+    weightEntries,
+    onLogWeight: logWeight,
+    profile,
+    friends,
+    pending,
+    loading: friendsLoading,
+    onSendRequest: sendFriendRequest,
+    onAccept: acceptRequest,
+    onDecline: declineRequest,
+    onSignOut: signOut,
+    onUpdateProfile: updateProfile,
+    stepsHistory,
+  };
 
   const screens = {
     onboarding: OnboardingScreen,
@@ -109,8 +182,6 @@ export default function App() {
   };
 
   const Cur = screens[screen] || HomeScreen;
-  const showBottomNav = !['onboarding', 'walk'].includes(screen);
-  const navMap = { home: 'home', history: 'history', friends: 'friends', profile: 'profile', weight: 'home', achievements: 'profile' };
 
   return (
     <div style={{
@@ -152,8 +223,7 @@ export default function App() {
         {isMobileViewport ? (
           <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', width: '100%', background: theme.bg, color: theme.text }}>
             <div className="stride-scroll" style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
-              <Cur tweaks={tweaks} theme={theme} nav={nav} setTweak={setTweak}
-                app={{ screen, setScreen }} sensorPermission={permission} requestSensorPermission={requestPermission} />
+              <Cur {...screenProps} />
             </div>
             {showBottomNav && (
               <BottomNav active={navMap[screen] || screen} theme={theme}
@@ -165,7 +235,7 @@ export default function App() {
             <DeviceShell theme={theme} dark={tweaks.dark}>
               <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: theme.bg, color: theme.text }}>
                 <div className="stride-scroll" style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
-                  <Cur tweaks={tweaks} theme={theme} nav={nav} setTweak={setTweak} app={{ screen, setScreen }} />
+                  <Cur {...screenProps} />
                 </div>
                 {showBottomNav && (
                   <BottomNav active={navMap[screen] || screen} theme={theme}
@@ -182,15 +252,6 @@ export default function App() {
               <div style={{ ...TYPE.sans, fontSize: 12, color: '#5a5447', marginTop: 12, lineHeight: 1.6 }}>
                 Eight screens, one continuous flow. Tap the floating <strong>walk</strong> button to start a session, the avatar for profile, or use the panel below to toggle palette, goals, and live progress.
               </div>
-              <div style={{ marginTop: 16, padding: '12px 14px', background: 'rgba(31,60,41,0.06)', borderRadius: 12, border: '1px solid rgba(31,60,41,0.1)' }}>
-                <div style={{ ...TYPE.sans, fontSize: 10.5, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#7a715f' }}>Try this</div>
-                <ul style={{ ...TYPE.sans, fontSize: 12, color: '#3a3528', margin: '6px 0 0 0', padding: '0 0 0 16px', lineHeight: 1.6 }}>
-                  <li>Drag the steps slider → ring fills live</li>
-                  <li>Profile → Stride Premium opens the upsell sheet</li>
-                  <li>Live Walk auto-counts seconds & steps</li>
-                </ul>
-              </div>
-
               <TweaksPanel tweaks={tweaks} setTweak={setTweak} screen={screen} setScreen={setScreen} />
             </div>
           </>
@@ -314,7 +375,6 @@ function TweaksPanel({ tweaks, setTweak, screen, setScreen }) {
               ...TYPE.sans, fontSize: 12, cursor: 'pointer',
             }}>
               {[
-                { value: 'onboarding', label: 'Onboarding' },
                 { value: 'home', label: 'Home / Today' },
                 { value: 'weight', label: 'Weight loss' },
                 { value: 'history', label: 'Trends' },

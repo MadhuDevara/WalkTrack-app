@@ -1,10 +1,11 @@
+import { useState } from 'react';
 import { TYPE } from '../theme.js';
 import {
   StepRing, StatCard, AppBar, IconButton, SectionHeader, Card, Sparkline,
 } from '../atoms.jsx';
 import {
   IconBell, IconMap, IconFlame, IconClock, IconFire, IconMoon,
-  IconDroplet, IconHeart, IconLeaf,
+  IconDroplet, IconHeart, IconLeaf, IconX,
 } from '../icons.jsx';
 
 function getGreeting() {
@@ -18,7 +19,8 @@ function getTodayLabel() {
   return new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
 }
 
-export function HomeScreen({ tweaks, theme, nav }) {
+export function HomeScreen({ tweaks, theme, nav, stepsHistory = [] }) {
+  const [showNotif, setShowNotif] = useState(false);
   const { currentSteps, stepGoal, metric, showWeightPanel, userName } = tweaks;
   const displayName = userName || 'there';
   const initial = displayName[0].toUpperCase();
@@ -26,6 +28,11 @@ export function HomeScreen({ tweaks, theme, nav }) {
   const calories = Math.round(currentSteps * 0.04);
   const minutes = Math.round(currentSteps / 110);
   const remaining = Math.max(0, stepGoal - currentSteps);
+
+  const weeklyReal = stepsHistory.slice(-7).map((row) => row.steps ?? 0);
+  const weeklyAvg = weeklyReal.length > 0
+    ? Math.round(weeklyReal.reduce((sum, s) => sum + s, 0) / weeklyReal.length)
+    : null;
 
   const hourly = [120, 0, 0, 0, 0, 0, 80, 340, 920, 540, 380, 720, 880, 460, 290, 540, 820, 1100, 540, 260, 80, 0, 0, 0];
   const hourlyShown = hourly.slice(0, 18);
@@ -46,7 +53,7 @@ export function HomeScreen({ tweaks, theme, nav }) {
         }
         trailing={
           <>
-            <IconButton theme={theme} variant="ghost"><IconBell size={18} color={theme.text} /></IconButton>
+            <IconButton theme={theme} variant="ghost" onClick={() => setShowNotif(v => !v)}><IconBell size={18} color={theme.text} /></IconButton>
             <IconButton theme={theme} variant="soft" onClick={() => nav('profile')}>
               <div style={{
                 width: 28, height: 28, borderRadius: '50%',
@@ -76,7 +83,7 @@ export function HomeScreen({ tweaks, theme, nav }) {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           <StatCard theme={theme} label="Distance"
             value={metric ? distanceKm : (distanceKm * 0.621371).toFixed(2)}
-            unit={metric ? 'km' : 'mi'} sub="↑ 0.4 vs avg"
+            unit={metric ? 'km' : 'mi'} sub={weeklyAvg ? `avg ${weeklyAvg.toLocaleString()} steps` : 'syncing...'}
             icon={<IconMap size={16} />} />
           <StatCard theme={theme} label="Calories" value={calories} unit="kcal"
             sub={`${Math.round(calories * 0.6)} active`}
@@ -166,6 +173,37 @@ export function HomeScreen({ tweaks, theme, nav }) {
           <WellnessChip theme={theme} icon={<IconMoon size={16} />} value="7h 12m" label="Sleep" />
           <WellnessChip theme={theme} icon={<IconDroplet size={16} />} value="5/8" label="Water" tone="active" />
           <WellnessChip theme={theme} icon={<IconHeart size={16} />} value="64" label="Resting bpm" />
+        </div>
+      </div>
+
+      {showNotif && <NotificationsPanel theme={theme} onClose={() => setShowNotif(false)} />}
+    </div>
+  );
+}
+
+function NotificationsPanel({ theme, onClose }) {
+  return (
+    <div style={{
+      position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.45)',
+      display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
+      zIndex: 50, paddingTop: 56,
+    }} onClick={onClose}>
+      <div onClick={e => e.stopPropagation()} style={{
+        background: theme.bg, width: 'calc(100% - 32px)', borderRadius: 18,
+        border: `1px solid ${theme.border}`,
+        boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
+        overflow: 'hidden',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px 10px' }}>
+          <span style={{ ...TYPE.sans, fontSize: 14, fontWeight: 600, color: theme.text }}>Notifications</span>
+          <IconButton theme={theme} variant="ghost" onClick={onClose}><IconX size={16} color={theme.textDim} /></IconButton>
+        </div>
+        <div style={{ padding: '8px 16px 20px', textAlign: 'center' }}>
+          <div style={{ width: 48, height: 48, borderRadius: '50%', background: theme.surface, border: `1px solid ${theme.border}`, margin: '8px auto 12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <IconBell size={20} color={theme.textDim} />
+          </div>
+          <div style={{ ...TYPE.sans, fontSize: 13, color: theme.textDim }}>You're all caught up</div>
+          <div style={{ ...TYPE.sans, fontSize: 12, color: theme.textMuted, marginTop: 4 }}>Goal alerts and friend activity will appear here</div>
         </div>
       </div>
     </div>

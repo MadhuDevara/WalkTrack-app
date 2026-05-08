@@ -4,16 +4,24 @@ import { AppBar, IconButton, SectionHeader, Card, Pill } from '../atoms.jsx';
 import { IconArrowLeft, IconX, IconPause, IconPlay, IconBolt } from '../icons.jsx';
 import { useStepCounter } from '../hooks/useStepCounter.js';
 
+const TIPS = [
+  { title: 'Heel to toe', body: 'Land on your heel and roll forward to your toes for efficient, low-impact walking.' },
+  { title: 'Arm swing', body: 'Bend elbows at 90° and swing forward (not across). Bigger swing = faster pace.' },
+  { title: 'Breathing rhythm', body: 'Inhale for 3 steps, exhale for 2. Keeps your pace steady and lungs open.' },
+  { title: 'Core engaged', body: 'Pull your navel gently in. Upright posture reduces back strain on long walks.' },
+  { title: 'Cadence target', body: 'Aim for 100–120 steps/min brisk walking. Faster cadence burns more calories.' },
+];
+
 export function WalkScreen({ tweaks, theme, nav, sensorPermission, requestSensorPermission }) {
   const { metric } = tweaks;
   const [running, setRunning] = useState(false);
   const [elapsed, setElapsed] = useState(0);
-
+  const [showTips, setShowTips] = useState(false);
+  const [tipIdx, setTipIdx] = useState(0);
   const { steps, permission, requestPermission, reset } = useStepCounter(running);
   const effectivePermission = sensorPermission || permission;
   const effectiveRequest = requestSensorPermission || requestPermission;
 
-  // Timer
   useEffect(() => {
     if (!running) return;
     const id = setInterval(() => setElapsed(e => e + 1), 1000);
@@ -21,9 +29,7 @@ export function WalkScreen({ tweaks, theme, nav, sensorPermission, requestSensor
   }, [running]);
 
   const handleStart = async () => {
-    if (effectivePermission === 'prompt') {
-      await effectiveRequest();
-    }
+    if (effectivePermission === 'prompt') await effectiveRequest();
     reset();
     setElapsed(0);
     setRunning(true);
@@ -112,7 +118,6 @@ export function WalkScreen({ tweaks, theme, nav, sensorPermission, requestSensor
         </Card>
       </div>
 
-      {/* Permission prompt */}
       {effectivePermission === 'prompt' && !running && (
         <div style={{ margin: '0 16px 12px', padding: '14px 16px', borderRadius: 14, background: theme.accentSoft, border: `1px solid ${theme.borderStrong}`, ...TYPE.sans, fontSize: 13, color: theme.text }}>
           📱 This app needs access to your phone's motion sensor to count real steps.
@@ -145,7 +150,7 @@ export function WalkScreen({ tweaks, theme, nav, sensorPermission, requestSensor
           {running ? <IconPause size={18} /> : <IconPlay size={18} />}
           {running ? 'Pause' : (elapsed > 0 ? 'Resume' : 'Start Walk')}
         </button>
-        <button style={{
+        <button onClick={() => setShowTips(true)} style={{
           width: 56, height: 56, borderRadius: '50%',
           background: theme.surface, border: `1px solid ${theme.border}`,
           color: theme.text, cursor: 'pointer',
@@ -154,6 +159,45 @@ export function WalkScreen({ tweaks, theme, nav, sensorPermission, requestSensor
           <IconBolt size={20} />
         </button>
       </div>
+
+      {showTips && (
+        <div style={{
+          position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.55)',
+          display: 'flex', alignItems: 'flex-end', zIndex: 50,
+        }} onClick={() => setShowTips(false)}>
+          <div onClick={e => e.stopPropagation()} style={{
+            background: theme.bg, width: '100%', borderRadius: '20px 20px 0 0',
+            border: `1px solid ${theme.border}`, paddingBottom: 24,
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '10px 0 4px' }}>
+              <div style={{ width: 36, height: 4, borderRadius: 2, background: theme.borderStrong }} />
+            </div>
+            <div style={{ padding: '8px 18px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ ...TYPE.sans, fontSize: 15, fontWeight: 600, color: theme.text }}>Coaching tip</span>
+              <div style={{ display: 'flex', gap: 6 }}>
+                {TIPS.map((_, i) => (
+                  <div key={i} onClick={() => setTipIdx(i)} style={{ width: 6, height: 6, borderRadius: '50%', background: i === tipIdx ? theme.accent : theme.borderStrong, cursor: 'pointer' }} />
+                ))}
+              </div>
+            </div>
+            <div style={{ padding: '0 18px 8px' }}>
+              <div style={{ padding: '18px', background: theme.surface, border: `1px solid ${theme.border}`, borderRadius: 16 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 10, background: theme.accentSoft, color: theme.accent, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <IconBolt size={16} />
+                  </div>
+                  <div style={{ ...TYPE.sans, fontSize: 14, fontWeight: 600, color: theme.text }}>{TIPS[tipIdx].title}</div>
+                </div>
+                <div style={{ ...TYPE.sans, fontSize: 13, color: theme.textDim, lineHeight: 1.6 }}>{TIPS[tipIdx].body}</div>
+              </div>
+              <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                <button onClick={() => setTipIdx(i => (i + TIPS.length - 1) % TIPS.length)} style={{ flex: 1, padding: '12px', borderRadius: 12, background: theme.surface, border: `1px solid ${theme.border}`, color: theme.text, cursor: 'pointer', ...TYPE.sans, fontSize: 13 }}>← Prev</button>
+                <button onClick={() => setTipIdx(i => (i + 1) % TIPS.length)} style={{ flex: 1, padding: '12px', borderRadius: 12, background: theme.accent, border: 'none', color: theme.bg, cursor: 'pointer', ...TYPE.sans, fontSize: 13, fontWeight: 600 }}>Next →</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

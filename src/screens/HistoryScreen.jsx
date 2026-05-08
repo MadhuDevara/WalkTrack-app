@@ -3,27 +3,58 @@ import { TYPE } from '../theme.js';
 import { AppBar, IconButton, Card, SectionHeader, BarChart, Pill } from '../atoms.jsx';
 import { IconCalendar, IconMap, IconFlame, IconCheck, IconStar, IconArrowUp } from '../icons.jsx';
 
-export function HistoryScreen({ tweaks, theme }) {
+export function HistoryScreen({ tweaks, theme, stepsHistory = [] }) {
   const { metric, stepGoal } = tweaks;
   const [tab, setTab] = useState('week');
 
+  const toShortDay = (dateStr) => new Date(dateStr).toLocaleDateString('en-US', { weekday: 'short' }).slice(0, 1);
+  const byDate = [...stepsHistory].sort((a, b) => a.date.localeCompare(b.date));
+  const last7 = byDate.slice(-7);
   const week = {
-    labels: ['M', 'T', 'W', 'T', 'F', 'S', 'S'],
-    data: [8420, 7842, 11240, 9180, 12300, 14820, 6240],
-    highlight: 1,
+    labels: last7.length > 0 ? last7.map((d) => toShortDay(d.date)) : ['M', 'T', 'W', 'T', 'F', 'S', 'S'],
+    data: last7.length > 0 ? last7.map((d) => d.steps ?? 0) : [8420, 7842, 11240, 9180, 12300, 14820, 6240],
+    highlight: last7.length > 0 ? last7.length - 1 : 1,
   };
+
+  const last28 = byDate.slice(-28);
+  const monthBuckets = [];
+  if (last28.length > 0) {
+    for (let i = 0; i < 4; i += 1) {
+      const chunk = last28.slice(i * 7, i * 7 + 7);
+      monthBuckets.push(chunk.reduce((sum, d) => sum + (d.steps ?? 0), 0));
+    }
+  }
   const month = {
     labels: ['W1', 'W2', 'W3', 'W4'],
-    data: [62400, 71200, 84300, 76840],
-    highlight: 2,
+    data: monthBuckets.length === 4 ? monthBuckets : [62400, 71200, 84300, 76840],
+    highlight: monthBuckets.length === 4 ? 3 : 2,
   };
-  const view = tab === 'week' ? week : month;
+
+  const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const yearBuckets = Array.from({ length: 12 }, (_, i) => {
+    const d = new Date();
+    d.setDate(1);
+    d.setMonth(d.getMonth() - (11 - i));
+    const prefix = d.toISOString().slice(0, 7);
+    const rows = byDate.filter(r => r.date.startsWith(prefix));
+    return {
+      label: MONTH_LABELS[d.getMonth()].slice(0, 1),
+      total: rows.reduce((s, r) => s + (r.steps ?? 0), 0),
+    };
+  });
+  const year = {
+    labels: yearBuckets.map(b => b.label),
+    data: yearBuckets.map(b => b.total),
+    highlight: 11,
+  };
+
+  const view = tab === 'week' ? week : tab === 'month' ? month : year;
   const total = view.data.reduce((a, b) => a + b, 0);
-  const avg = Math.round(total / view.data.length);
+  const avg = Math.round(total / (tab === 'year' ? 12 : view.data.length));
 
   return (
     <div style={{ background: theme.bg, color: theme.text, minHeight: '100%', paddingBottom: 24 }}>
-      <AppBar theme={theme} large title="Trends" subtitle="Last 30 days"
+      <AppBar theme={theme} large title="Trends" subtitle={tab === 'year' ? 'Last 12 months' : tab === 'month' ? 'Last 30 days' : 'Last 7 days'}
         leading={null}
         trailing={<IconButton theme={theme} variant="soft"><IconCalendar size={16} color={theme.text} /></IconButton>}
       />
@@ -57,7 +88,7 @@ export function HistoryScreen({ tweaks, theme }) {
       <div style={{ padding: '0 16px 0' }}>
         <Card theme={theme} padding={20}>
           <BarChart data={view.data} labels={view.labels} theme={theme}
-            highlight={view.highlight} goal={tab === 'week' ? stepGoal : stepGoal * 7}
+            highlight={view.highlight} goal={tab === 'week' ? stepGoal : tab === 'month' ? stepGoal * 7 : stepGoal * 30}
             height={160} />
         </Card>
       </div>
