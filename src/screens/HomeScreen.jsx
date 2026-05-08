@@ -1,10 +1,11 @@
+import { useState } from 'react';
 import { TYPE } from '../theme.js';
 import {
   StepRing, StatCard, AppBar, IconButton, SectionHeader, Card, Sparkline,
 } from '../atoms.jsx';
 import {
   IconBell, IconMap, IconFlame, IconClock, IconFire, IconMoon,
-  IconDroplet, IconHeart, IconLeaf,
+  IconDroplet, IconHeart, IconLeaf, IconX,
 } from '../icons.jsx';
 
 function getGreeting() {
@@ -19,6 +20,7 @@ function getTodayLabel() {
 }
 
 export function HomeScreen({ tweaks, theme, nav, stepsHistory = [] }) {
+  const [showNotif, setShowNotif] = useState(false);
   const { currentSteps, stepGoal, metric, showWeightPanel, userName } = tweaks;
   const displayName = userName || 'there';
   const initial = displayName[0].toUpperCase();
@@ -51,7 +53,7 @@ export function HomeScreen({ tweaks, theme, nav, stepsHistory = [] }) {
         }
         trailing={
           <>
-            <IconButton theme={theme} variant="ghost"><IconBell size={18} color={theme.text} /></IconButton>
+            <IconButton theme={theme} variant="ghost" onClick={() => setShowNotif(v => !v)}><IconBell size={18} color={theme.text} /></IconButton>
             <IconButton theme={theme} variant="soft" onClick={() => nav('profile')}>
               <div style={{
                 width: 28, height: 28, borderRadius: '50%',
@@ -171,6 +173,37 @@ export function HomeScreen({ tweaks, theme, nav, stepsHistory = [] }) {
           <WellnessChip theme={theme} icon={<IconMoon size={16} />} value="7h 12m" label="Sleep" />
           <WellnessChip theme={theme} icon={<IconDroplet size={16} />} value="5/8" label="Water" tone="active" />
           <WellnessChip theme={theme} icon={<IconHeart size={16} />} value="64" label="Resting bpm" />
+        </div>
+      </div>
+
+      {showNotif && <NotificationsPanel theme={theme} onClose={() => setShowNotif(false)} />}
+    </div>
+  );
+}
+
+function NotificationsPanel({ theme, onClose }) {
+  return (
+    <div style={{
+      position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.45)',
+      display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
+      zIndex: 50, paddingTop: 56,
+    }} onClick={onClose}>
+      <div onClick={e => e.stopPropagation()} style={{
+        background: theme.bg, width: 'calc(100% - 32px)', borderRadius: 18,
+        border: `1px solid ${theme.border}`,
+        boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
+        overflow: 'hidden',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px 10px' }}>
+          <span style={{ ...TYPE.sans, fontSize: 14, fontWeight: 600, color: theme.text }}>Notifications</span>
+          <IconButton theme={theme} variant="ghost" onClick={onClose}><IconX size={16} color={theme.textDim} /></IconButton>
+        </div>
+        <div style={{ padding: '8px 16px 20px', textAlign: 'center' }}>
+          <div style={{ width: 48, height: 48, borderRadius: '50%', background: theme.surface, border: `1px solid ${theme.border}`, margin: '8px auto 12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <IconBell size={20} color={theme.textDim} />
+          </div>
+          <div style={{ ...TYPE.sans, fontSize: 13, color: theme.textDim }}>You're all caught up</div>
+          <div style={{ ...TYPE.sans, fontSize: 12, color: theme.textMuted, marginTop: 4 }}>Goal alerts and friend activity will appear here</div>
         </div>
       </div>
     </div>

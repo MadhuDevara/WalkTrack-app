@@ -30,13 +30,31 @@ export function HistoryScreen({ tweaks, theme, stepsHistory = [] }) {
     highlight: monthBuckets.length === 4 ? 3 : 2,
   };
 
-  const view = tab === 'week' ? week : month;
+  const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const yearBuckets = Array.from({ length: 12 }, (_, i) => {
+    const d = new Date();
+    d.setDate(1);
+    d.setMonth(d.getMonth() - (11 - i));
+    const prefix = d.toISOString().slice(0, 7);
+    const rows = byDate.filter(r => r.date.startsWith(prefix));
+    return {
+      label: MONTH_LABELS[d.getMonth()].slice(0, 1),
+      total: rows.reduce((s, r) => s + (r.steps ?? 0), 0),
+    };
+  });
+  const year = {
+    labels: yearBuckets.map(b => b.label),
+    data: yearBuckets.map(b => b.total),
+    highlight: 11,
+  };
+
+  const view = tab === 'week' ? week : tab === 'month' ? month : year;
   const total = view.data.reduce((a, b) => a + b, 0);
-  const avg = Math.round(total / view.data.length);
+  const avg = Math.round(total / (tab === 'year' ? 12 : view.data.length));
 
   return (
     <div style={{ background: theme.bg, color: theme.text, minHeight: '100%', paddingBottom: 24 }}>
-      <AppBar theme={theme} large title="Trends" subtitle="Last 30 days"
+      <AppBar theme={theme} large title="Trends" subtitle={tab === 'year' ? 'Last 12 months' : tab === 'month' ? 'Last 30 days' : 'Last 7 days'}
         leading={null}
         trailing={<IconButton theme={theme} variant="soft"><IconCalendar size={16} color={theme.text} /></IconButton>}
       />
@@ -70,7 +88,7 @@ export function HistoryScreen({ tweaks, theme, stepsHistory = [] }) {
       <div style={{ padding: '0 16px 0' }}>
         <Card theme={theme} padding={20}>
           <BarChart data={view.data} labels={view.labels} theme={theme}
-            highlight={view.highlight} goal={tab === 'week' ? stepGoal : stepGoal * 7}
+            highlight={view.highlight} goal={tab === 'week' ? stepGoal : tab === 'month' ? stepGoal * 7 : stepGoal * 30}
             height={160} />
         </Card>
       </div>
