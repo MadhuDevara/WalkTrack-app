@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useTheme, TYPE } from './theme.js';
 import { BottomNav } from './atoms.jsx';
 import { HomeScreen } from './screens/HomeScreen.jsx';
@@ -10,7 +10,7 @@ import { FriendsScreen } from './screens/FriendsScreen.jsx';
 import { ProfileScreen } from './screens/ProfileScreen.jsx';
 import { OnboardingScreen } from './screens/OnboardingScreen.jsx';
 import { AuthScreen } from './screens/AuthScreen.jsx';
-import { useStepCounter } from './hooks/useStepCounter.js';
+import { usePedometer } from './hooks/usePedometer.js';
 import { useAuth } from './hooks/useAuth.js';
 import { useSupabaseSteps } from './hooks/useSupabaseSteps.js';
 import { useWeight } from './hooks/useWeight.js';
@@ -137,12 +137,10 @@ function MainApp({ session, profile, signOut, updateProfile }) {
     setTweaksState(prev => ({ ...prev, [key]: value }));
   }, []);
 
-  const { steps: sensorSteps, permission, requestPermission } = useStepCounter(tweaks.hasOnboarded);
-  const baseSteps = useRef(tweaks.currentSteps);
+  const { steps: liveSteps, permission, requestPermission } = usePedometer(tweaks.hasOnboarded);
   useEffect(() => {
-    if (sensorSteps === 0) return;
-    setTweaksState(prev => ({ ...prev, currentSteps: baseSteps.current + sensorSteps }));
-  }, [sensorSteps]);
+    setTweaksState(prev => prev.currentSteps === liveSteps ? prev : { ...prev, currentSteps: liveSteps });
+  }, [liveSteps]);
 
   const { history: stepsHistory } = useSupabaseSteps(userId, tweaks.currentSteps);
   const { entries: weightEntries, logWeight } = useWeight(userId);

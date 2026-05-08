@@ -11,7 +11,7 @@ export function useSupabaseSteps(userId, localSteps) {
 
   useEffect(() => {
     if (!userId) return;
-    const since = new Date(Date.now() - 30 * 86400_000).toISOString().slice(0, 10);
+    const since = new Date(Date.now() - 365 * 86400_000).toISOString().slice(0, 10);
     supabase
       .from('steps_log')
       .select('date, steps')
