@@ -98,11 +98,11 @@ _[tool: snip]_
 
 _[tool: fork_verifier_agent]_
 
-Built **Stride** — a premium wellness steps counter with 8 fully navigable screens (Onboarding → Home → Live Walk → Trends → Weight Loss → Achievements → Friends → Profile w/ Premium upsell), in an earthy forest+mint palette.
+Built **WalkTrack** — a premium wellness steps counter with 8 fully navigable screens (Onboarding → Home → Live Walk → Trends → Weight Loss → Achievements → Friends → Profile w/ Premium upsell), in an earthy forest+mint palette.
 
 **Try it**
 - Floating green button → Live Walk (auto-counting timer + steps)
-- Tap avatar / "Stride Premium" card → premium upsell sheet
+- Tap avatar / "WalkTrack Premium" card → premium upsell sheet
 - Tweaks panel: 5 palettes, light/dark, step goal, live progress slider, units, weight panel toggle, jump-to-screen
 
 **Caveats**

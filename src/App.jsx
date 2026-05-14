@@ -32,7 +32,7 @@ const TWEAK_DEFAULTS = {
 
 function loadFromStorage() {
   try {
-    const saved = localStorage.getItem('stride:settings');
+    const saved = localStorage.getItem('WalkTrack:settings');
     if (saved) return { ...TWEAK_DEFAULTS, ...JSON.parse(saved) };
   } catch (_) {}
   return TWEAK_DEFAULTS;
@@ -40,7 +40,7 @@ function loadFromStorage() {
 
 function getTodayStepsKey(userId) {
   if (!userId) return '';
-  return `stride:steps:${userId}:${new Date().toISOString().slice(0, 10)}`;
+  return `WalkTrack:steps:${userId}:${new Date().toISOString().slice(0, 10)}`;
 }
 
 function loadTodaySteps(userId) {
@@ -131,7 +131,7 @@ function MainApp({ session, profile, signOut, updateProfile }) {
   useEffect(() => {
     try {
       const { currentSteps, ...settings } = tweaks;
-      localStorage.setItem('stride:settings', JSON.stringify(settings));
+      localStorage.setItem('WalkTrack:settings', JSON.stringify(settings));
       saveTodaySteps(userId, currentSteps);
     } catch (_) {}
   }, [tweaks, userId]);
@@ -221,8 +221,8 @@ function MainApp({ session, profile, signOut, updateProfile }) {
     }}>
       <style>{`
         html, body { margin: 0; padding: 0; height: 100%; }
-        .stride-scroll::-webkit-scrollbar { width: 0; height: 0; }
-        .stride-scroll { scrollbar-width: none; }
+        .WalkTrack-scroll::-webkit-scrollbar { width: 0; height: 0; }
+        .WalkTrack-scroll { scrollbar-width: none; }
         @keyframes pulse-ring {
           0% { transform: scale(0.96); opacity: 0.7; }
           50% { transform: scale(1.04); opacity: 0.3; }
@@ -245,7 +245,7 @@ function MainApp({ session, profile, signOut, updateProfile }) {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 32, flexWrap: 'wrap', width: '100%' }}>
         {isMobileViewport ? (
           <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', width: '100%', background: theme.bg, color: theme.text }}>
-            <div className="stride-scroll" style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
+            <div className="WalkTrack-scroll" style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
               <Cur {...screenProps} />
             </div>
             {showBottomNav && (
@@ -257,7 +257,7 @@ function MainApp({ session, profile, signOut, updateProfile }) {
           <>
             <DeviceShell theme={theme} dark={tweaks.dark}>
               <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: theme.bg, color: theme.text }}>
-                <div className="stride-scroll" style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
+                <div className="WalkTrack-scroll" style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
                   <Cur {...screenProps} />
                 </div>
                 {showBottomNav && (
@@ -268,7 +268,7 @@ function MainApp({ session, profile, signOut, updateProfile }) {
             </DeviceShell>
 
             <div style={{ maxWidth: 240, color: '#3a3528' }}>
-              <div style={{ ...TYPE.sans, fontSize: 11, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#7a715f' }}>Stride · v0.1</div>
+              <div style={{ ...TYPE.sans, fontSize: 11, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#7a715f' }}>WalkTrack · v0.1</div>
               <div style={{ ...TYPE.serif, fontSize: 22, lineHeight: 1.25, color: '#1c2418', marginTop: 8, fontStyle: 'italic' }}>
                 A premium wellness step counter for the long walk.
               </div>

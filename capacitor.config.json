@@ -1,5 +1,5 @@
 {
-  "appId": "com.stride.app",
-  "appName": "Stride",
+  "appId": "com.dkmstack.app",
+  "appName": "WalkTrack",
   "webDir": "dist"
 }

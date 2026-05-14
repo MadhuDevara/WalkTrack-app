@@ -82,7 +82,7 @@ function App() {
         <DeviceShell theme={theme} dark={t.dark}>
           <div style={{ display: 'flex', flexDirection: 'column', height: '100%',
             background: theme.bg, color: theme.text }}>
-            <div className="stride-scroll" style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
+            <div className="WalkTrack-scroll" style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
               <Cur tweaks={t} theme={theme} nav={nav} setTweak={setTweak} app={{ screen, setScreen }} />
             </div>
             {showBottomNav && (
@@ -98,7 +98,7 @@ function App() {
         {/* Side caption */}
         <div style={{ maxWidth: 240, color: '#3a3528' }}>
           <div style={{ ...TYPE.sans, fontSize: 11, letterSpacing: '0.2em',
-            textTransform: 'uppercase', color: '#7a715f' }}>Stride · v0.1</div>
+            textTransform: 'uppercase', color: '#7a715f' }}>WalkTrack · v0.1</div>
           <div style={{ ...TYPE.serif, fontSize: 22, lineHeight: 1.25,
             color: '#1c2418', marginTop: 8, fontStyle: 'italic' }}>
             A premium wellness step counter for the long walk.
@@ -116,7 +116,7 @@ function App() {
             <ul style={{ ...TYPE.sans, fontSize: 12, color: '#3a3528',
               margin: '6px 0 0 0', padding: '0 0 0 16px', lineHeight: 1.6 }}>
               <li>Drag the steps slider in Tweaks → ring fills live</li>
-              <li>Profile → Stride Premium opens the upsell sheet</li>
+              <li>Profile → WalkTrack Premium opens the upsell sheet</li>
               <li>Live Walk auto-counts seconds & steps</li>
             </ul>
           </div>
@@ -126,7 +126,7 @@ function App() {
   );
 }
 
-// Custom slimmer device shell — Android-inspired but tuned for Stride
+// Custom slimmer device shell — Android-inspired but tuned for WalkTrack
 function DeviceShell({ children, theme, dark }) {
   return (
     <div style={{

@@ -1,4 +1,4 @@
-package com.stride.app;
+package com.dkmstack.app;
 
 import android.content.Context;
 import android.content.Intent;

@@ -1,4 +1,4 @@
-package com.stride.app;
+package com.dkmstack.app;
 
 import android.app.Notification;
 import android.app.NotificationChannel;
@@ -22,8 +22,8 @@ import java.util.Locale;
 
 public class StepCounterService extends Service implements SensorEventListener {
 
-    public static final String PREFS          = "stride_steps";
-    private static final String CHANNEL_ID   = "stride_step_counter";
+    public static final String PREFS          = "WalkTrack_steps";
+    private static final String CHANNEL_ID   = "WalkTrack_step_counter";
     private static final int    NOTIF_ID     = 1001;
 
     private SensorManager sensorManager;
@@ -125,7 +125,7 @@ public class StepCounterService extends Service implements SensorEventListener {
             NotificationChannel ch = new NotificationChannel(
                 CHANNEL_ID, "Step Tracker", NotificationManager.IMPORTANCE_LOW
             );
-            ch.setDescription("Counts your steps all day, even when Stride is closed");
+            ch.setDescription("Counts your steps all day, even when WalkTrack is closed");
             ch.setShowBadge(false);
             NotificationManager nm = getSystemService(NotificationManager.class);
             if (nm != null) nm.createNotificationChannel(ch);
@@ -141,7 +141,7 @@ public class StepCounterService extends Service implements SensorEventListener {
         );
         String text = steps == 0 ? "Tracking steps..." : steps + " steps today";
         return new NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("Stride")
+            .setContentTitle("WalkTrack")
             .setContentText(text)
             .setSmallIcon(R.drawable.ic_notif_steps)
             .setContentIntent(pi)

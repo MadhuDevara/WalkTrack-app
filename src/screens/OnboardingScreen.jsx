@@ -16,7 +16,7 @@ export function OnboardingScreen({ tweaks, theme, nav, setTweak, onUpdateProfile
 
   const steps = [
     {
-      title: 'Welcome to Stride',
+      title: 'Welcome to WalkTrack',
       subtitle: 'Walk your way to a healthier you',
       body: <WelcomeStep theme={theme} />,
     },

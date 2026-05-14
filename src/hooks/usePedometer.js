@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Capacitor, registerPlugin } from '@capacitor/core';
 
 const dayKey = (userId) =>
-  userId ? `stride:steps:${userId}:${new Date().toISOString().slice(0, 10)}` : '';
+  userId ? `WalkTrack:steps:${userId}:${new Date().toISOString().slice(0, 10)}` : '';
 
 const loadSaved = (userId) => {
   if (!userId) return 0;

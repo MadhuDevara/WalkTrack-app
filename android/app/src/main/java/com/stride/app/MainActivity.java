@@ -1,4 +1,4 @@
-package com.stride.app;
+package com.dkmstack.app;
 
 import android.os.Bundle;
 import com.getcapacitor.BridgeActivity;

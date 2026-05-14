@@ -1,4 +1,4 @@
-// Atomic UI building blocks for the Stride app.
+// Atomic UI building blocks for the WalkTrack app.
 
 // ── Big animated step ring ──────────────────────────────────────────────
 function StepRing({ steps, goal, theme, size = 260, thickness = 14, label = true, animate = true }) {

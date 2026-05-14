@@ -8,10 +8,10 @@ import {
 } from '../icons.jsx';
 
 function loadPref(key, def) {
-  try { const v = localStorage.getItem('stride:pref:' + key); return v === null ? def : JSON.parse(v); } catch { return def; }
+  try { const v = localStorage.getItem('WalkTrack:pref:' + key); return v === null ? def : JSON.parse(v); } catch { return def; }
 }
 function savePref(key, val) {
-  try { localStorage.setItem('stride:pref:' + key, JSON.stringify(val)); } catch {}
+  try { localStorage.setItem('WalkTrack:pref:' + key, JSON.stringify(val)); } catch {}
 }
 
 function computeStreak(history, goal) {
@@ -128,7 +128,7 @@ export function ProfileScreen({ tweaks, theme, nav, onSignOut, onUpdateProfile, 
             </div>
             <div style={{ flex: 1 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ ...TYPE.serif, fontSize: 18, color: theme.text, fontWeight: 500 }}>Stride Premium</span>
+                <span style={{ ...TYPE.serif, fontSize: 18, color: theme.text, fontWeight: 500 }}>WalkTrack Premium</span>
                 <span style={{ ...TYPE.sans, fontSize: 9, padding: '2px 6px', background: theme.warm, color: theme.bg, borderRadius: 4, letterSpacing: '0.1em', fontWeight: 700 }}>SOON</span>
               </div>
               <div style={{ ...TYPE.sans, fontSize: 12, color: theme.textDim, marginTop: 2 }}>Coaching, advanced analytics, ad-free</div>
@@ -422,7 +422,7 @@ function PremiumSheet({ theme, onClose }) {
           <div style={{ width: 56, height: 56, borderRadius: 16, background: theme.warm, color: theme.bg, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <IconCrown size={26} />
           </div>
-          <div style={{ ...TYPE.display, fontSize: 28, color: theme.text, marginTop: 14 }}>Stride Premium</div>
+          <div style={{ ...TYPE.display, fontSize: 28, color: theme.text, marginTop: 14 }}>WalkTrack Premium</div>
           <div style={{ ...TYPE.serif, fontSize: 14, fontStyle: 'italic', color: theme.textDim, marginTop: 4 }}>Coming this summer · join the waitlist</div>
         </div>
         <div style={{ padding: '0 18px' }}>

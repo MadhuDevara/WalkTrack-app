@@ -80,7 +80,7 @@ export function AuthScreen({ theme, onAuth }) {
             <path d="M13 4v16M6 12l7-8 7 8" />
           </svg>
         </div>
-        <div style={{ ...TYPE.display, fontSize: 32, color: theme.text }}>Stride</div>
+        <div style={{ ...TYPE.display, fontSize: 32, color: theme.text }}>WalkTrack</div>
         <div
           style={{
             ...TYPE.serif,

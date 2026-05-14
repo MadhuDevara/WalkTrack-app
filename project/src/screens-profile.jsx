@@ -56,7 +56,7 @@ function ProfileScreen({ tweaks, theme, nav, setTweak }) {
             <div style={{ flex: 1 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <span style={{ ...TYPE.serif, fontSize: 18, color: theme.text, fontWeight: 500 }}>
-                  Stride Premium
+                  WalkTrack Premium
                 </span>
                 <span style={{ ...TYPE.sans, fontSize: 9, padding: '2px 6px',
                   background: theme.warm, color: theme.bg, borderRadius: 4,
@@ -176,7 +176,7 @@ function PremiumSheet({ theme, onClose }) {
         borderRadius: '20px 20px 0 0',
         border: `1px solid ${theme.border}`,
         maxHeight: '92%', overflow: 'auto', paddingBottom: 20,
-      }} className="stride-scroll">
+      }} className="WalkTrack-scroll">
         <div style={{ display: 'flex', justifyContent: 'center', padding: '10px 0' }}>
           <div style={{ width: 36, height: 4, borderRadius: 2, background: theme.borderStrong }} />
         </div>
@@ -187,7 +187,7 @@ function PremiumSheet({ theme, onClose }) {
             <IconCrown size={26} />
           </div>
           <div style={{ ...TYPE.display, fontSize: 28, color: theme.text, marginTop: 14 }}>
-            Stride Premium
+            WalkTrack Premium
           </div>
           <div style={{ ...TYPE.serif, fontSize: 14, fontStyle: 'italic',
             color: theme.textDim, marginTop: 4 }}>
