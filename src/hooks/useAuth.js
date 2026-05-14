@@ -45,6 +45,14 @@ export function useAuth() {
     return error;
   }
 
+  async function signInWithGoogle() {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: 'com.stride.app://login-callback' },
+    });
+    return error;
+  }
+
   async function signOut() {
     await supabase.auth.signOut();
   }
@@ -66,6 +74,7 @@ export function useAuth() {
     profile,
     signUp,
     signIn,
+    signInWithGoogle,
     signOut,
     updateProfile,
     loading: session === undefined,

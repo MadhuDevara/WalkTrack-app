@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
+import { App as CapApp } from '@capacitor/app';
 import { useTheme, TYPE } from './theme.js';
 import { BottomNav } from './atoms.jsx';
 import { HomeScreen } from './screens/HomeScreen.jsx';
@@ -15,6 +16,7 @@ import { useAuth } from './hooks/useAuth.js';
 import { useSupabaseSteps } from './hooks/useSupabaseSteps.js';
 import { useWeight } from './hooks/useWeight.js';
 import { useFriends } from './hooks/useFriends.js';
+import { supabase } from './lib/supabase.js';
 
 const TWEAK_DEFAULTS = {
   palette: ['#0F1B14', '#34D399', '#F5F1EA', '#A8D5A2'],
@@ -65,8 +67,26 @@ const PALETTES = [
 ];
 
 export default function App() {
-  const { session, profile, signUp, signIn, signOut, updateProfile, loading: authLoading } = useAuth();
+  const { session, profile, signUp, signIn, signInWithGoogle, signOut, updateProfile, loading: authLoading } = useAuth();
   const darkTheme = useTheme(true, TWEAK_DEFAULTS.palette);
+
+  useEffect(() => {
+    const handleDeepLink = async ({ url }) => {
+      if (url.includes('login-callback')) {
+        const fragment = url.split('#')[1];
+        if (fragment) {
+          const params = new URLSearchParams(fragment);
+          const access_token = params.get('access_token');
+          const refresh_token = params.get('refresh_token');
+          if (access_token && refresh_token) {
+            await supabase.auth.setSession({ access_token, refresh_token });
+          }
+        }
+      }
+    };
+    CapApp.addListener('appUrlOpen', handleDeepLink);
+    return () => { CapApp.removeAllListeners(); };
+  }, []);
 
   if (authLoading) {
     return (
@@ -83,7 +103,7 @@ export default function App() {
     return (
       <div style={{ fontFamily: '"Inter Tight", system-ui, sans-serif', minHeight: '100vh', background: darkTheme.bg }}>
         <div style={{ maxWidth: 420, margin: '0 auto', minHeight: '100vh' }}>
-          <AuthScreen theme={darkTheme} onAuth={handleAuth} />
+          <AuthScreen theme={darkTheme} onAuth={handleAuth} onGoogleAuth={signInWithGoogle} />
         </div>
       </div>
     );
