@@ -1,45 +1,73 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Capacitor, registerPlugin } from '@capacitor/core';
 
-const DAY_KEY = () => 'stride:steps:' + new Date().toISOString().slice(0, 10);
-const loadSaved = () => { try { return parseInt(localStorage.getItem(DAY_KEY()) || '0', 10); } catch { return 0; } };
-const persist   = (n) => { try { localStorage.setItem(DAY_KEY(), String(n)); } catch {} };
+const dayKey = (userId) =>
+  userId ? `stride:steps:${userId}:${new Date().toISOString().slice(0, 10)}` : '';
+
+const loadSaved = (userId) => {
+  if (!userId) return 0;
+  try {
+    return parseInt(localStorage.getItem(dayKey(userId)) || '0', 10);
+  } catch {
+    return 0;
+  }
+};
+
+const persist = (userId, n) => {
+  if (!userId) return;
+  try {
+    localStorage.setItem(dayKey(userId), String(n));
+  } catch {}
+};
 
 const StepCounter = registerPlugin('StepCounter');
 
-export function usePedometer(enabled = true) {
-  const [steps, setSteps] = useState(loadSaved);
+export function usePedometer(enabled = true, userId = null) {
+  const [steps, setSteps] = useState(() => loadSaved(userId));
   const [supported, setSupported] = useState(null);
   const [permission, setPermission] = useState('unknown');
 
   const stepsRef         = useRef(steps);
   stepsRef.current       = steps;
-  const baseRef          = useRef(loadSaved());
+  const baseRef          = useRef(loadSaved(userId));
   const sensorCountRef   = useRef(0);
-  const dayRef           = useRef(DAY_KEY());
+  const dayRef           = useRef(dayKey(userId));
   const motionHandlerRef = useRef(null);
   const cleanupRef       = useRef(() => {});
 
-  useEffect(() => { persist(steps); }, [steps]);
+  useEffect(() => {
+    if (!userId) return;
+    const saved = loadSaved(userId);
+    baseRef.current = saved;
+    dayRef.current = dayKey(userId);
+    sensorCountRef.current = 0;
+    setSteps(saved);
+  }, [userId]);
 
   useEffect(() => {
+    if (!userId) return;
+    persist(userId, steps);
+  }, [steps, userId]);
+
+  useEffect(() => {
+    if (!userId) return;
     const onVisible = () => {
       if (document.visibilityState !== 'visible') return;
-      const today = DAY_KEY();
+      const today = dayKey(userId);
       if (today !== dayRef.current) {
         dayRef.current       = today;
         baseRef.current      = 0;
         sensorCountRef.current = 0;
         setSteps(0);
-        persist(0);
+        persist(userId, 0);
       }
     };
     document.addEventListener('visibilitychange', onVisible);
     return () => document.removeEventListener('visibilitychange', onVisible);
-  }, []);
+  }, [userId]);
 
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled || !userId) return;
 
     async function init() {
       const isAndroid = Capacitor.getPlatform() === 'android';
@@ -55,7 +83,7 @@ export function usePedometer(enabled = true) {
             const { steps: nativeSteps } = await StepCounter.getTodaySteps();
             if (nativeSteps >= 0) {
               setSteps(nativeSteps);
-              persist(nativeSteps);
+              persist(userId, nativeSteps);
             }
           };
 
@@ -91,7 +119,7 @@ export function usePedometer(enabled = true) {
             });
             if (numberOfSteps > stepsRef.current) {
               setSteps(numberOfSteps);
-              persist(numberOfSteps);
+              persist(userId, numberOfSteps);
             }
           };
 
@@ -139,7 +167,7 @@ export function usePedometer(enabled = true) {
 
     init();
     return () => cleanupRef.current();
-  }, [enabled]);
+  }, [enabled, userId]);
 
   const requestPermission = useCallback(async () => {
     if (typeof DeviceMotionEvent.requestPermission !== 'function') return;
@@ -157,8 +185,8 @@ export function usePedometer(enabled = true) {
     baseRef.current        = 0;
     sensorCountRef.current = 0;
     setSteps(0);
-    persist(0);
-  }, []);
+    persist(userId, 0);
+  }, [userId]);
 
   return { steps, supported, permission, requestPermission, reset };
 }
