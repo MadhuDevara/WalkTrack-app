@@ -76,7 +76,7 @@ export function usePedometer(enabled = true) {
 
       if (isIOS) {
         try {
-          const { Pedometer } = await import('@capacitor-community/pedometer');
+          const { Pedometer } = await import('@capgo/capacitor-pedometer');
           const { available } = await Pedometer.isAvailable();
           if (!available) throw new Error('unavailable');
 
