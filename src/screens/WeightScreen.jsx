@@ -94,62 +94,10 @@ export function WeightScreen({ tweaks, theme, nav, weightEntries = [], onLogWeig
       </div>
 
       <div style={{ padding: '20px 16px 0' }}>
-        <SectionHeader theme={theme} title="Today's calorie balance" />
-        <Card theme={theme} padding={18}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
-            <CaloryStat theme={theme} label="Eaten" value={1620} target={2100} color={theme.warm} />
-            <CaloryStat theme={theme} label="Burned" value={2432} target={2400} color={theme.accent} />
+        <Card theme={theme} padding={16} style={{ background: theme.surface, border: `1px solid ${theme.border}` }}>
+          <div style={{ ...TYPE.sans, fontSize: 13, color: theme.textDim, textAlign: 'center' }}>
+            Calorie &amp; food tracking coming soon
           </div>
-          <div style={{ borderTop: `1px solid ${theme.border}`, paddingTop: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div>
-              <div style={{ ...TYPE.sans, fontSize: 11, letterSpacing: '0.16em', color: theme.textMuted, textTransform: 'uppercase' }}>Net deficit</div>
-              <div style={{ ...TYPE.display, fontSize: 32, color: theme.accent, marginTop: 2 }}>−812</div>
-              <div style={{ ...TYPE.sans, fontSize: 11, color: theme.textDim, marginTop: 1 }}>≈ 0.10{u} lost today</div>
-            </div>
-            <div style={{ width: 90, height: 90 }}>
-              <DonutBalance eaten={1620} burned={2432} theme={theme} />
-            </div>
-          </div>
-        </Card>
-      </div>
-
-      <div style={{ padding: '20px 16px 0' }}>
-        <SectionHeader theme={theme} title="This week's deficit" />
-        <Card theme={theme} padding={0}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', ...TYPE.sans, fontSize: 13, color: theme.text }}>
-            <thead>
-              <tr style={{ ...TYPE.mono, fontSize: 10, color: theme.textMuted, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
-                <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 400 }}>Day</th>
-                <th style={{ padding: '12px 8px', textAlign: 'right', fontWeight: 400 }}>In</th>
-                <th style={{ padding: '12px 8px', textAlign: 'right', fontWeight: 400 }}>Out</th>
-                <th style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 400 }}>Net</th>
-              </tr>
-            </thead>
-            <tbody>
-              {[
-                ['Mon', 1840, 2210, -370],
-                ['Tue', 1620, 2432, -812],
-                ['Wed', 2010, 2380, -370],
-                ['Thu', 1740, 2290, -550],
-                ['Fri', 1990, 2520, -530],
-                ['Sat', 2240, 2640, -400],
-                ['Sun', 1880, 2410, -530],
-              ].map(([d, eat, burn, net], i) => (
-                <tr key={i} style={{ borderTop: i === 0 ? 'none' : `1px solid ${theme.border}` }}>
-                  <td style={{ padding: '10px 16px' }}>{d}</td>
-                  <td style={{ padding: '10px 8px', textAlign: 'right', ...TYPE.mono, color: theme.textDim }}>{eat.toLocaleString()}</td>
-                  <td style={{ padding: '10px 8px', textAlign: 'right', ...TYPE.mono, color: theme.textDim }}>{burn.toLocaleString()}</td>
-                  <td style={{ padding: '10px 16px', textAlign: 'right', ...TYPE.mono, color: net < 0 ? theme.accent : theme.rose, fontWeight: 500 }}>{net}</td>
-                </tr>
-              ))}
-              <tr style={{ borderTop: `1px solid ${theme.borderStrong}`, background: theme.surfaceAlt }}>
-                <td style={{ padding: '12px 16px', ...TYPE.sans, fontWeight: 600 }}>Total</td>
-                <td style={{ padding: '12px 8px', textAlign: 'right', ...TYPE.mono, fontWeight: 600 }}>13,320</td>
-                <td style={{ padding: '12px 8px', textAlign: 'right', ...TYPE.mono, fontWeight: 600 }}>16,882</td>
-                <td style={{ padding: '12px 16px', textAlign: 'right', ...TYPE.mono, color: theme.accent, fontWeight: 600 }}>−3,562</td>
-              </tr>
-            </tbody>
-          </table>
         </Card>
       </div>
 
@@ -202,37 +150,6 @@ export function WeightScreen({ tweaks, theme, nav, weightEntries = [], onLogWeig
   );
 }
 
-function CaloryStat({ theme, label, value, target, color }) {
-  const pct = Math.min(value / target, 1) * 100;
-  return (
-    <div>
-      <div style={{ ...TYPE.sans, fontSize: 11, letterSpacing: '0.16em', color: theme.textMuted, textTransform: 'uppercase' }}>{label}</div>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginTop: 4 }}>
-        <span style={{ ...TYPE.display, fontSize: 24, color: theme.text }}>{value.toLocaleString()}</span>
-        <span style={{ ...TYPE.mono, fontSize: 11, color: theme.textMuted }}>/ {target.toLocaleString()}</span>
-      </div>
-      <div style={{ height: 4, background: theme.borderStrong, borderRadius: 2, marginTop: 8, overflow: 'hidden' }}>
-        <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: 2 }} />
-      </div>
-    </div>
-  );
-}
-
-function DonutBalance({ eaten, burned, theme }) {
-  const total = eaten + burned;
-  const eatPct = eaten / total;
-  const r = 38, c = 2 * Math.PI * r;
-  return (
-    <svg viewBox="0 0 90 90" width="100%" height="100%">
-      <circle cx="45" cy="45" r={r} stroke={theme.warm} strokeWidth="9" fill="none"
-        strokeDasharray={`${c * eatPct} ${c}`} transform="rotate(-90 45 45)" strokeLinecap="round" />
-      <circle cx="45" cy="45" r={r} stroke={theme.accent} strokeWidth="9" fill="none"
-        strokeDasharray={`${c * (1 - eatPct)} ${c}`}
-        strokeDashoffset={`-${c * eatPct}`}
-        transform="rotate(-90 45 45)" strokeLinecap="round" />
-    </svg>
-  );
-}
 
 function WeightLineChart({ data, theme, u, goal }) {
   const w = 320, h = 140, pad = 16;

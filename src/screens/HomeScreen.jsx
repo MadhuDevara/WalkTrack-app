@@ -19,7 +19,22 @@ function getTodayLabel() {
   return new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
 }
 
-export function HomeScreen({ tweaks, theme, nav, stepsHistory = [] }) {
+function computeStreak(history, goal) {
+  if (!history.length) return 0;
+  const sorted = [...history].sort((a, b) => b.date.localeCompare(a.date));
+  let streak = 0;
+  for (let i = 0; i < sorted.length; i++) {
+    const expected = new Date(Date.now() - i * 86400_000).toISOString().slice(0, 10);
+    if (sorted[i].date === expected && sorted[i].steps >= goal) {
+      streak++;
+    } else {
+      break;
+    }
+  }
+  return streak;
+}
+
+export function HomeScreen({ tweaks, theme, nav, stepsHistory = [], weightEntries = [] }) {
   const [showNotif, setShowNotif] = useState(false);
   const { currentSteps, stepGoal, metric, showWeightPanel, userName } = tweaks;
   const displayName = userName || 'there';
@@ -34,8 +49,16 @@ export function HomeScreen({ tweaks, theme, nav, stepsHistory = [] }) {
     ? Math.round(weeklyReal.reduce((sum, s) => sum + s, 0) / weeklyReal.length)
     : null;
 
-  const hourly = [120, 0, 0, 0, 0, 0, 80, 340, 920, 540, 380, 720, 880, 460, 290, 540, 820, 1100, 540, 260, 80, 0, 0, 0];
-  const hourlyShown = hourly.slice(0, 18);
+  const streak = computeStreak(stepsHistory, stepGoal);
+
+  const recentWeight = weightEntries.length >= 2 ? weightEntries[weightEntries.length - 1].weight_kg : null;
+  const weekAgoWeight = weightEntries.length >= 2
+    ? weightEntries[Math.max(0, weightEntries.length - 8)].weight_kg
+    : null;
+  const weightDelta = (recentWeight != null && weekAgoWeight != null)
+    ? (recentWeight - weekAgoWeight).toFixed(1)
+    : null;
+  const weightSparkline = weightEntries.slice(-8).map(e => e.weight_kg);
 
   return (
     <div style={{ background: theme.bg, color: theme.text, minHeight: '100%', paddingBottom: 24 }}>
@@ -91,8 +114,8 @@ export function HomeScreen({ tweaks, theme, nav, stepsHistory = [] }) {
           <StatCard theme={theme} label="Active Min" value={minutes} unit="min"
             sub={`${Math.max(0, 60 - minutes)} below target`}
             icon={<IconClock size={16} />} />
-          <StatCard theme={theme} label="Streak" value={28} unit="days"
-            sub="🔥 personal best"
+          <StatCard theme={theme} label="Streak" value={streak} unit="days"
+            sub={streak > 0 ? '🔥 keep it up!' : 'Start today!'}
             icon={<IconFire size={16} color={theme.warm} />} accent={theme.warm} />
         </div>
       </div>
@@ -118,27 +141,38 @@ export function HomeScreen({ tweaks, theme, nav, stepsHistory = [] }) {
       </div>
 
       <div style={{ padding: '20px 16px 0' }}>
-        <SectionHeader theme={theme} title="Activity by hour" action="Trends →" />
+        <SectionHeader theme={theme} title="Weekly steps" action="Trends →" />
         <Card theme={theme} padding={16}>
-          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 64 }}>
-            {hourlyShown.map((v, i) => {
-              const max = Math.max(...hourlyShown);
-              const h = (v / max) * 64;
-              const isNow = i === 14;
-              return (
-                <div key={i} style={{ flex: 1, height: '100%', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-                  <div style={{
-                    width: '70%', height: Math.max(2, h), borderRadius: 2,
-                    background: isNow ? theme.accent : (v > 0 ? theme.accentDim : theme.borderStrong),
-                    opacity: isNow ? 1 : (v > 0 ? 0.55 : 1),
-                  }} />
-                </div>
-              );
-            })}
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, ...TYPE.mono, fontSize: 9.5, color: theme.textMuted }}>
-            <span>6a</span><span>9a</span><span>12p</span><span>3p</span><span>now</span>
-          </div>
+          {weeklyReal.length > 0 ? (
+            <>
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 64 }}>
+                {weeklyReal.map((v, i) => {
+                  const max = Math.max(...weeklyReal, 1);
+                  const h = (v / max) * 64;
+                  const isToday = i === weeklyReal.length - 1;
+                  return (
+                    <div key={i} style={{ flex: 1, height: '100%', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+                      <div style={{
+                        width: '70%', height: Math.max(2, h), borderRadius: 2,
+                        background: isToday ? theme.accent : (v >= stepGoal ? theme.accentDim : theme.borderStrong),
+                        opacity: isToday ? 1 : 0.75,
+                      }} />
+                    </div>
+                  );
+                })}
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, ...TYPE.mono, fontSize: 9.5, color: theme.textMuted }}>
+                {weeklyReal.map((_, i) => {
+                  const d = new Date(Date.now() - (weeklyReal.length - 1 - i) * 86400_000);
+                  return <span key={i}>{d.toLocaleDateString('en', { weekday: 'short' }).slice(0, 1)}</span>;
+                })}
+              </div>
+            </>
+          ) : (
+            <div style={{ height: 64, display: 'flex', alignItems: 'center', justifyContent: 'center', ...TYPE.sans, fontSize: 12, color: theme.textMuted }}>
+              Walk today to see your weekly chart
+            </div>
+          )}
         </Card>
       </div>
 
@@ -146,23 +180,33 @@ export function HomeScreen({ tweaks, theme, nav, stepsHistory = [] }) {
         <div style={{ padding: '20px 16px 0' }}>
           <SectionHeader theme={theme} title="Weight loss" action="Open →" />
           <Card theme={theme} padding={0} onClick={() => nav('weight')} style={{ overflow: 'hidden' }}>
-            <div style={{ padding: '16px 16px 14px', display: 'grid', gridTemplateColumns: '1fr auto', gap: 12, alignItems: 'center' }}>
-              <div>
-                <div style={{ ...TYPE.sans, fontSize: 11, letterSpacing: '0.16em', textTransform: 'uppercase', color: theme.textMuted }}>Down this week</div>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 4 }}>
-                  <span style={{ ...TYPE.display, fontSize: 32, color: theme.text }}>−1.2</span>
-                  <span style={{ ...TYPE.mono, fontSize: 12, color: theme.textDim }}>{tweaks.metric ? 'kg' : 'lb'}</span>
+            {recentWeight != null ? (
+              <>
+                <div style={{ padding: '16px 16px 14px', display: 'grid', gridTemplateColumns: '1fr auto', gap: 12, alignItems: 'center' }}>
+                  <div>
+                    <div style={{ ...TYPE.sans, fontSize: 11, letterSpacing: '0.16em', textTransform: 'uppercase', color: theme.textMuted }}>
+                      {weightDelta !== null && parseFloat(weightDelta) < 0 ? 'Down this week' : 'This week'}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 4 }}>
+                      <span style={{ ...TYPE.display, fontSize: 32, color: theme.text }}>
+                        {weightDelta !== null ? (parseFloat(weightDelta) <= 0 ? '' : '+') + weightDelta : '—'}
+                      </span>
+                      <span style={{ ...TYPE.mono, fontSize: 12, color: theme.textDim }}>{tweaks.metric ? 'kg' : 'lb'}</span>
+                    </div>
+                    <div style={{ ...TYPE.sans, fontSize: 12, color: theme.textDim, marginTop: 2 }}>
+                      {tweaks.metric ? recentWeight.toFixed(1) : (recentWeight * 2.20462).toFixed(1)}{tweaks.metric ? ' kg' : ' lb'} current
+                    </div>
+                  </div>
+                  {weightSparkline.length >= 2 && (
+                    <Sparkline data={weightSparkline} width={120} height={48} color={theme.accent} theme={theme} />
+                  )}
                 </div>
-                <div style={{ ...TYPE.sans, fontSize: 12, color: theme.textDim, marginTop: 2 }}>
-                  68.4{tweaks.metric ? 'kg' : 'lb'} · 9.6 to goal
-                </div>
+              </>
+            ) : (
+              <div style={{ padding: '20px 16px', textAlign: 'center', ...TYPE.sans, fontSize: 13, color: theme.textDim }}>
+                Log your first weight to see progress
               </div>
-              <Sparkline data={[72, 71.8, 71.4, 71.6, 70.9, 70.2, 69.6, 68.4]} width={120} height={48} color={theme.accent} theme={theme} />
-            </div>
-            <div style={{ borderTop: `1px solid ${theme.border}`, padding: '10px 16px', display: 'flex', justifyContent: 'space-between', ...TYPE.mono, fontSize: 11, color: theme.textDim }}>
-              <span><span style={{ color: theme.accent }}>+312</span> deficit today</span>
-              <span>{tweaks.metric ? '4.0kg' : '8.8lb'} since Apr 1</span>
-            </div>
+            )}
           </Card>
         </div>
       )}
@@ -170,9 +214,12 @@ export function HomeScreen({ tweaks, theme, nav, stepsHistory = [] }) {
       <div style={{ padding: '20px 16px 0' }}>
         <SectionHeader theme={theme} title="Today's wellness" />
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
-          <WellnessChip theme={theme} icon={<IconMoon size={16} />} value="7h 12m" label="Sleep" />
-          <WellnessChip theme={theme} icon={<IconDroplet size={16} />} value="5/8" label="Water" tone="active" />
-          <WellnessChip theme={theme} icon={<IconHeart size={16} />} value="64" label="Resting bpm" />
+          <WellnessChip theme={theme} icon={<IconMoon size={16} />} value="—" label="Sleep" />
+          <WellnessChip theme={theme} icon={<IconDroplet size={16} />} value="—" label="Water" />
+          <WellnessChip theme={theme} icon={<IconHeart size={16} />} value="—" label="Heart bpm" />
+        </div>
+        <div style={{ ...TYPE.sans, fontSize: 11, color: theme.textMuted, marginTop: 8, textAlign: 'center' }}>
+          Sleep, water &amp; heart rate tracking coming soon
         </div>
       </div>
 

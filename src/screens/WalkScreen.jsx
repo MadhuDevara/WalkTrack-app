@@ -89,32 +89,15 @@ export function WalkScreen({ tweaks, theme, nav, sensorPermission, requestSensor
 
       <div style={{ padding: '12px 16px 0', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
         <LiveStat theme={theme} label="Calories" value={cals} unit="kcal" />
-        <LiveStat theme={theme} label="Heart rate" value="124" unit="bpm" pulse />
+        <LiveStat theme={theme} label="Heart rate" value="—" unit="bpm" />
       </div>
 
       <div style={{ padding: '20px 16px 0', flex: 1 }}>
         <SectionHeader theme={theme} title="Splits" action="Auto · 1 km" />
-        <Card theme={theme} padding={0}>
-          {[
-            { km: 1, time: '7:42', pace: '7:42', delta: 0 },
-            { km: 2, time: '7:28', pace: '7:28', delta: -14 },
-            { km: 3, time: '7:54', pace: '7:54', delta: 12 },
-          ].map((s, i) => (
-            <div key={i} style={{
-              display: 'grid', gridTemplateColumns: '40px 1fr 80px 60px',
-              alignItems: 'center', padding: '12px 16px', gap: 12,
-              borderTop: i === 0 ? 'none' : `1px solid ${theme.border}`,
-            }}>
-              <div style={{ ...TYPE.mono, fontSize: 13, color: theme.textDim }}>{s.km}</div>
-              <div style={{ height: 4, background: theme.borderStrong, borderRadius: 2, overflow: 'hidden' }}>
-                <div style={{ width: `${100 - i * 8}%`, height: '100%', background: theme.accent, borderRadius: 2 }} />
-              </div>
-              <div style={{ ...TYPE.mono, fontSize: 13, color: theme.text, textAlign: 'right' }}>{s.time}</div>
-              <div style={{ ...TYPE.mono, fontSize: 11, textAlign: 'right', color: s.delta < 0 ? theme.accent : (s.delta > 0 ? theme.rose : theme.textMuted) }}>
-                {s.delta === 0 ? '—' : (s.delta > 0 ? `+${s.delta}s` : `${s.delta}s`)}
-              </div>
-            </div>
-          ))}
+        <Card theme={theme} padding={16}>
+          <div style={{ textAlign: 'center', ...TYPE.sans, fontSize: 13, color: theme.textDim }}>
+            {running ? 'Splits will appear as you complete each km' : 'Start a walk to track splits'}
+          </div>
         </Card>
       </div>
 
