@@ -4,7 +4,7 @@ import { AppBar, IconButton, Card, SectionHeader, Pill } from '../atoms.jsx';
 import {
   IconArrowLeft, IconArrowRight, IconMore,
   IconLeaf, IconFire, IconCrown, IconBell, IconHeart,
-  IconShield, IconLock, IconTrophy, IconScale, IconChart, IconUsers, IconBolt, IconX,
+  IconShield, IconLock, IconTrophy, IconScale, IconChart, IconUsers, IconBolt, IconX, IconCheck,
 } from '../icons.jsx';
 
 function loadPref(key, def) {
@@ -14,11 +14,24 @@ function savePref(key, val) {
   try { localStorage.setItem('stride:pref:' + key, JSON.stringify(val)); } catch {}
 }
 
-export function ProfileScreen({ tweaks, theme, nav, onSignOut, profile }) {
+function computeStreak(history, goal) {
+  if (!history.length) return 0;
+  const sorted = [...history].sort((a, b) => b.date.localeCompare(a.date));
+  let streak = 0;
+  for (let i = 0; i < sorted.length; i++) {
+    const expected = new Date(Date.now() - i * 86400_000).toISOString().slice(0, 10);
+    if (sorted[i].date === expected && sorted[i].steps >= goal) streak++;
+    else break;
+  }
+  return streak;
+}
+
+export function ProfileScreen({ tweaks, theme, nav, onSignOut, onUpdateProfile, profile, stepsHistory = [], weightEntries = [] }) {
   const [showPremium, setShowPremium] = useState(false);
   const [showNotifModal, setShowNotifModal] = useState(false);
   const [showHealthModal, setShowHealthModal] = useState(false);
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
 
   const [notifGoal, setNotifGoal] = useState(() => loadPref('notifGoal', true));
   const [notifFriends, setNotifFriends] = useState(() => loadPref('notifFriends', true));
@@ -29,8 +42,37 @@ export function ProfileScreen({ tweaks, theme, nav, onSignOut, profile }) {
   useEffect(() => { savePref('showOnLeaderboard', showOnLeaderboard); }, [showOnLeaderboard]);
 
   const displayName = profile?.display_name || tweaks.userName || 'You';
+  const username = profile?.username || '';
   const initial = displayName[0].toUpperCase();
-  const joinDate = profile?.join_date || tweaks.joinDate || 'Recently';
+  const joinDate = profile?.join_date
+    ? new Date(profile.join_date).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+    : (tweaks.joinDate || 'Recently');
+
+  const sorted = [...stepsHistory].sort((a, b) => a.date.localeCompare(b.date));
+  const lifetimeSteps = sorted.reduce((s, r) => s + (r.steps ?? 0), 0);
+  const lifetimeKm = (lifetimeSteps * 0.00076).toFixed(1);
+  const lifetimeMi = (lifetimeSteps * 0.00076 * 0.621371).toFixed(1);
+  const lifetimeCals = lifetimeSteps > 0 ? (Math.round(lifetimeSteps * 0.04 / 1000) + 'k') : '—';
+  const activeDaysAll = sorted.filter(r => (r.steps ?? 0) > 0).length;
+  const streak = computeStreak(stepsHistory, tweaks.stepGoal);
+
+  const nowPrefix = new Date().toISOString().slice(0, 7);
+  const monthWeight = weightEntries.filter(e => e.date?.startsWith(nowPrefix));
+  const weightDelta = monthWeight.length >= 2
+    ? (monthWeight[monthWeight.length - 1].weight_kg - monthWeight[0].weight_kg).toFixed(1)
+    : null;
+
+  const badgeCount = (() => {
+    const best = sorted.reduce((b, r) => (r.steps ?? 0) > (b?.steps ?? 0) ? r : b, null);
+    let count = 0;
+    if (lifetimeSteps >= 1000) count++;
+    if (stepsHistory.some(r => r.steps >= 10000)) count++;
+    if (streak >= 7) count++;
+    if (streak >= 30) count++;
+    if (lifetimeSteps >= 500000) count++;
+    if (lifetimeSteps >= 1000000) count++;
+    return count;
+  })();
 
   return (
     <div style={{ background: theme.bg, color: theme.text, minHeight: '100%', paddingBottom: 24, position: 'relative' }}>
@@ -38,9 +80,17 @@ export function ProfileScreen({ tweaks, theme, nav, onSignOut, profile }) {
         leading={<IconButton theme={theme} variant="soft" onClick={() => nav('home')}><IconArrowLeft size={16} color={theme.text} /></IconButton>}
         title="Profile"
         trailing={
-          <IconButton theme={theme} variant="soft" onClick={() => setShowNotifModal(true)}>
-            <IconBell size={16} color={theme.text} />
-          </IconButton>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <IconButton theme={theme} variant="soft" onClick={() => setShowEditModal(true)}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={theme.text} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+              </svg>
+            </IconButton>
+            <IconButton theme={theme} variant="soft" onClick={() => setShowNotifModal(true)}>
+              <IconBell size={16} color={theme.text} />
+            </IconButton>
+          </div>
         }
       />
 
@@ -51,12 +101,17 @@ export function ProfileScreen({ tweaks, theme, nav, onSignOut, profile }) {
           margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center',
           ...TYPE.serif, fontSize: 36, color: theme.bg, fontWeight: 500,
           border: `3px solid ${theme.bg}`, boxShadow: `0 0 0 2px ${theme.accent}`,
-        }}>{initial}</div>
+          cursor: 'pointer',
+        }} onClick={() => setShowEditModal(true)}>{initial}</div>
         <div style={{ ...TYPE.display, fontSize: 24, color: theme.text, marginTop: 12 }}>{displayName}</div>
-        <div style={{ ...TYPE.sans, fontSize: 13, color: theme.textDim, marginTop: 2 }}>Joined {joinDate} · Level 1</div>
-        <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginTop: 10 }}>
-          <Pill theme={theme} tone="accent" icon={<IconLeaf size={11} />}>Trailblazer</Pill>
-          <Pill theme={theme} tone="warm" icon={<IconFire size={11} />}>28 day streak</Pill>
+        {username && (
+          <div style={{ ...TYPE.mono, fontSize: 12, color: theme.textMuted, marginTop: 2 }}>@{username}</div>
+        )}
+        <div style={{ ...TYPE.sans, fontSize: 13, color: theme.textDim, marginTop: 2 }}>Joined {joinDate}</div>
+        <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginTop: 10, flexWrap: 'wrap' }}>
+          {streak > 0 && <Pill theme={theme} tone="warm" icon={<IconFire size={11} />}>{streak} day streak</Pill>}
+          {lifetimeSteps > 0 && <Pill theme={theme} tone="accent" icon={<IconLeaf size={11} />}>{(lifetimeSteps / 1000).toFixed(0)}k steps</Pill>}
+          {streak === 0 && lifetimeSteps === 0 && <Pill theme={theme} tone="accent" icon={<IconLeaf size={11} />}>Just starting</Pill>}
         </div>
       </div>
 
@@ -87,10 +142,10 @@ export function ProfileScreen({ tweaks, theme, nav, onSignOut, profile }) {
         <SectionHeader theme={theme} title="Lifetime" />
         <Card theme={theme} padding={0}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
-            <LifeCell theme={theme} label="Total steps" value="312,480" />
-            <LifeCell theme={theme} label="Distance" value={tweaks.metric ? '237.5 km' : '147.6 mi'} border />
-            <LifeCell theme={theme} label="Active days" value="84" top />
-            <LifeCell theme={theme} label="Calories" value="124k" top border />
+            <LifeCell theme={theme} label="Total steps" value={lifetimeSteps > 0 ? lifetimeSteps.toLocaleString() : '—'} />
+            <LifeCell theme={theme} label="Distance" value={lifetimeSteps > 0 ? (tweaks.metric ? lifetimeKm + ' km' : lifetimeMi + ' mi') : '—'} border />
+            <LifeCell theme={theme} label="Active days" value={activeDaysAll > 0 ? String(activeDaysAll) : '—'} top />
+            <LifeCell theme={theme} label="Calories" value={lifetimeCals} top border />
           </div>
         </Card>
       </div>
@@ -101,18 +156,21 @@ export function ProfileScreen({ tweaks, theme, nav, onSignOut, profile }) {
           <SettingRow theme={theme} icon={<IconBell size={16} />} label="Notifications" sub={notifGoal || notifFriends ? 'Goal, friends, reminders' : 'All notifications off'} onClick={() => setShowNotifModal(true)} />
           <SettingRow theme={theme} icon={<IconHeart size={16} />} label="Connected health" sub="Google Fit · Health Connect" onClick={() => setShowHealthModal(true)} />
           <SettingRow theme={theme} icon={<IconShield size={16} />} label="Privacy" sub={showOnLeaderboard ? 'Visible on leaderboard' : 'Hidden from leaderboard'} onClick={() => setShowPrivacyModal(true)} />
-          <SettingRow theme={theme} icon={<IconLock size={16} />} label="Account" sub="Tap to sign out" last onClick={onSignOut} />
+          <SettingRow theme={theme} icon={<IconLock size={16} />} label="Sign out" sub="Tap to sign out" last onClick={onSignOut} />
         </Card>
       </div>
 
       <div style={{ padding: '20px 16px 0' }}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-          <QuickTile theme={theme} icon={<IconTrophy size={18} />} label="Achievements" sub="3 of 6 unlocked" onClick={() => nav('achievements')} />
-          <QuickTile theme={theme} icon={<IconScale size={18} />} label="Weight loss" sub="−4.0 kg this month" onClick={() => nav('weight')} />
+          <QuickTile theme={theme} icon={<IconTrophy size={18} />} label="Achievements" sub={`${badgeCount} of 6 unlocked`} onClick={() => nav('achievements')} />
+          <QuickTile theme={theme} icon={<IconScale size={18} />} label="Weight"
+            sub={weightDelta !== null ? `${parseFloat(weightDelta) <= 0 ? '' : '+'}${weightDelta} ${tweaks.metric ? 'kg' : 'lb'} this month` : 'Log your weight'}
+            onClick={() => nav('weight')} />
         </div>
       </div>
 
       {showPremium && <PremiumSheet theme={theme} onClose={() => setShowPremium(false)} />}
+      {showEditModal && <EditProfileSheet theme={theme} profile={profile} tweaks={tweaks} onUpdateProfile={onUpdateProfile} onClose={() => setShowEditModal(false)} />}
 
       {showNotifModal && (
         <BottomSheet theme={theme} title="Notifications" onClose={() => setShowNotifModal(false)}>
@@ -165,6 +223,84 @@ export function ProfileScreen({ tweaks, theme, nav, onSignOut, profile }) {
           </div>
         </BottomSheet>
       )}
+    </div>
+  );
+}
+
+function EditProfileSheet({ theme, profile, tweaks, onUpdateProfile, onClose }) {
+  const [displayName, setDisplayName] = useState(profile?.display_name || tweaks.userName || '');
+  const [username, setUsername] = useState(profile?.username || '');
+  const [stepGoal, setStepGoal] = useState(profile?.step_goal ?? tweaks.stepGoal ?? 10000);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [saved, setSaved] = useState(false);
+
+  async function handleSave() {
+    if (!displayName.trim()) { setError('Name cannot be empty'); return; }
+    if (username && !/^[a-z0-9_]{3,20}$/.test(username)) {
+      setError('Username: 3–20 chars, lowercase letters, numbers, underscores only');
+      return;
+    }
+    setSaving(true);
+    setError('');
+    const updates = {
+      display_name: displayName.trim(),
+      step_goal: stepGoal,
+    };
+    if (username.trim()) updates.username = username.trim().toLowerCase();
+    const err = await onUpdateProfile(updates);
+    setSaving(false);
+    if (err) { setError(err.message || 'Save failed'); return; }
+    setSaved(true);
+    setTimeout(onClose, 800);
+  }
+
+  return (
+    <BottomSheet theme={theme} title="Edit profile" onClose={onClose}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <Field theme={theme} label="Display name">
+          <input value={displayName} onChange={e => setDisplayName(e.target.value)}
+            placeholder="Your name"
+            style={{ width: '100%', boxSizing: 'border-box', padding: '11px 14px', borderRadius: 10, background: theme.surface, border: `1px solid ${theme.border}`, color: theme.text, ...TYPE.sans, fontSize: 14, outline: 'none' }} />
+        </Field>
+
+        <Field theme={theme} label="Username" hint="Used for friend requests — must be unique">
+          <input value={username} onChange={e => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
+            placeholder="e.g. john_doe"
+            style={{ width: '100%', boxSizing: 'border-box', padding: '11px 14px', borderRadius: 10, background: theme.surface, border: `1px solid ${theme.border}`, color: theme.text, ...TYPE.sans, fontSize: 14, outline: 'none' }} />
+        </Field>
+
+        <Field theme={theme} label={`Daily step goal · ${stepGoal.toLocaleString()}`}>
+          <input type="range" min="3000" max="20000" step="500" value={stepGoal}
+            onChange={e => setStepGoal(Number(e.target.value))}
+            style={{ width: '100%', accentColor: theme.accent }} />
+          <div style={{ display: 'flex', justifyContent: 'space-between', ...TYPE.mono, fontSize: 10, color: theme.textMuted, marginTop: 2 }}>
+            <span>3k</span><span>20k</span>
+          </div>
+        </Field>
+
+        {error && <div style={{ ...TYPE.sans, fontSize: 12, color: '#ef4444' }}>{error}</div>}
+
+        <button onClick={handleSave} disabled={saving || saved} style={{
+          width: '100%', padding: '14px', borderRadius: 14,
+          background: saved ? theme.accentDim : theme.accent, color: theme.bg, border: 'none',
+          ...TYPE.sans, fontSize: 14, fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+          opacity: saving ? 0.7 : 1,
+        }}>
+          {saved ? <><IconCheck size={16} /> Saved!</> : saving ? 'Saving…' : 'Save changes'}
+        </button>
+      </div>
+    </BottomSheet>
+  );
+}
+
+function Field({ theme, label, hint, children }) {
+  return (
+    <div>
+      <div style={{ ...TYPE.sans, fontSize: 11, fontWeight: 600, color: theme.textDim, marginBottom: 6, letterSpacing: '0.06em' }}>{label}</div>
+      {hint && <div style={{ ...TYPE.sans, fontSize: 11, color: theme.textMuted, marginBottom: 6 }}>{hint}</div>}
+      {children}
     </div>
   );
 }
@@ -258,6 +394,8 @@ function ToggleRow({ theme, label, sub, value, onChange }) {
 }
 
 function PremiumSheet({ theme, onClose }) {
+  const [joined, setJoined] = useState(false);
+
   const features = [
     { icon: <IconBolt size={16} />, title: 'AI walking coach', desc: 'Personalized weekly plans, voice cues during walks' },
     { icon: <IconChart size={16} />, title: 'Advanced analytics', desc: 'VO2 max, recovery, training load' },
@@ -317,9 +455,15 @@ function PremiumSheet({ theme, onClose }) {
               <div style={{ ...TYPE.sans, fontSize: 11, color: theme.accent, marginTop: 4 }}>Save 45%</div>
             </div>
           </div>
-          <button style={{ width: '100%', marginTop: 16, padding: '14px 18px', borderRadius: 14, background: theme.accent, color: theme.bg, border: 'none', ...TYPE.sans, fontSize: 14, fontWeight: 600, letterSpacing: '0.06em', cursor: 'pointer' }}>
-            Join the waitlist · Get 50% off launch
-          </button>
+          {joined ? (
+            <div style={{ marginTop: 16, padding: '14px', borderRadius: 14, background: theme.accentSoft, border: `1px solid ${theme.accent}`, textAlign: 'center', ...TYPE.sans, fontSize: 14, color: theme.accent, fontWeight: 600 }}>
+              ✓ You're on the waitlist! We'll notify you at launch.
+            </div>
+          ) : (
+            <button onClick={() => setJoined(true)} style={{ width: '100%', marginTop: 16, padding: '14px 18px', borderRadius: 14, background: theme.accent, color: theme.bg, border: 'none', ...TYPE.sans, fontSize: 14, fontWeight: 600, letterSpacing: '0.06em', cursor: 'pointer' }}>
+              Join the waitlist · Get 50% off launch
+            </button>
+          )}
           <div style={{ textAlign: 'center', marginTop: 10, ...TYPE.sans, fontSize: 11, color: theme.textMuted }}>
             We'll notify you when it's ready · No charge today
           </div>

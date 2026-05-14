@@ -175,14 +175,21 @@ export function IconButton({ children, onClick, theme, variant = 'ghost', size =
   );
 }
 
-export function SectionHeader({ title, action, theme }) {
+export function SectionHeader({ title, action, onAction, theme }) {
   return (
     <div style={{
       display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
       padding: '4px 4px 10px',
     }}>
       <div style={{ ...TYPE.sans, fontSize: 11, letterSpacing: '0.2em', color: theme.textDim, textTransform: 'uppercase', fontWeight: 500 }}>{title}</div>
-      {action && <div style={{ ...TYPE.sans, fontSize: 12, color: theme.accent, cursor: 'pointer' }}>{action}</div>}
+      {action && (
+        <div
+          onClick={onAction}
+          style={{ ...TYPE.sans, fontSize: 12, color: theme.accent, cursor: onAction ? 'pointer' : 'default', opacity: onAction ? 1 : 0.5 }}
+        >
+          {action}
+        </div>
+      )}
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { TYPE } from '../theme.js';
 import { AppBar, IconButton, Card, SectionHeader, BarChart, Pill } from '../atoms.jsx';
-import { IconCalendar, IconMap, IconFlame, IconCheck, IconStar, IconArrowUp } from '../icons.jsx';
+import { IconMap, IconFlame, IconCheck, IconStar, IconArrowUp } from '../icons.jsx';
 
 export function HistoryScreen({ tweaks, theme, stepsHistory = [] }) {
   const { metric, stepGoal } = tweaks;
@@ -50,13 +50,43 @@ export function HistoryScreen({ tweaks, theme, stepsHistory = [] }) {
 
   const view = tab === 'week' ? week : tab === 'month' ? month : year;
   const total = view.data.reduce((a, b) => a + b, 0);
-  const avg = Math.round(total / (tab === 'year' ? 12 : view.data.length));
+  const nonZero = view.data.filter(v => v > 0);
+  const avg = nonZero.length > 0 ? Math.round(total / nonZero.length) : 0;
+
+  const prevView = (() => {
+    if (tab === 'week') {
+      const prev7 = byDate.slice(-14, -7);
+      return prev7.length > 0 ? prev7.map(d => d.steps ?? 0) : [];
+    }
+    if (tab === 'month') {
+      const prev28 = byDate.slice(-56, -28);
+      if (prev28.length === 0) return [];
+      const buckets = [];
+      for (let i = 0; i < 4; i++) {
+        const chunk = prev28.slice(i * 7, i * 7 + 7);
+        buckets.push(chunk.reduce((s, d) => s + (d.steps ?? 0), 0));
+      }
+      return buckets;
+    }
+    return [];
+  })();
+  const prevTotal = prevView.reduce((a, b) => a + b, 0);
+  const pctChange = prevTotal > 0 ? Math.round(((total - prevTotal) / prevTotal) * 100) : null;
+
+  const bestEntry = byDate.length > 0 ? byDate.reduce((best, r) => (r.steps ?? 0) > (best?.steps ?? 0) ? r : best, null) : null;
+  const nowPrefix = new Date().toISOString().slice(0, 7);
+  const thisMonth = byDate.filter(r => r.date.startsWith(nowPrefix));
+  const monthSteps = thisMonth.reduce((s, r) => s + (r.steps ?? 0), 0);
+  const monthDistKm = (monthSteps * 0.00076).toFixed(1);
+  const monthCals = Math.round(monthSteps * 0.04).toLocaleString();
+  const activeDays = thisMonth.filter(r => (r.steps ?? 0) > 0).length;
+  const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
 
   return (
     <div style={{ background: theme.bg, color: theme.text, minHeight: '100%', paddingBottom: 24 }}>
       <AppBar theme={theme} large title="Trends" subtitle={tab === 'year' ? 'Last 12 months' : tab === 'month' ? 'Last 30 days' : 'Last 7 days'}
         leading={null}
-        trailing={<IconButton theme={theme} variant="soft"><IconCalendar size={16} color={theme.text} /></IconButton>}
+        trailing={null}
       />
 
       <div style={{ padding: '4px 16px 16px' }}>
@@ -80,7 +110,11 @@ export function HistoryScreen({ tweaks, theme, stepsHistory = [] }) {
           {avg.toLocaleString()}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6 }}>
-          <Pill theme={theme} tone="accent" icon={<IconArrowUp size={11} />}>+12% vs last {tab}</Pill>
+          {pctChange !== null && (
+            <Pill theme={theme} tone={pctChange >= 0 ? 'accent' : 'warm'} icon={<IconArrowUp size={11} style={{ transform: pctChange < 0 ? 'rotate(180deg)' : 'none' }} />}>
+              {pctChange >= 0 ? '+' : ''}{pctChange}% vs last {tab}
+            </Pill>
+          )}
           <span style={{ ...TYPE.mono, fontSize: 11, color: theme.textMuted }}>{total.toLocaleString()} total</span>
         </div>
       </div>
@@ -96,34 +130,23 @@ export function HistoryScreen({ tweaks, theme, stepsHistory = [] }) {
       <div style={{ padding: '20px 16px 0' }}>
         <SectionHeader theme={theme} title="Records" />
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-          <Record theme={theme} label="Best day" value="14,820" sub="Saturday" icon={<IconStar size={16} />} />
-          <Record theme={theme} label="Total distance" value={metric ? '218.4' : '135.7'}
-            unit={metric ? 'km' : 'mi'} sub="this month" icon={<IconMap size={16} />} />
-          <Record theme={theme} label="Calories burned" value="68,420" sub="this month"
+          <Record theme={theme} label="Best day"
+            value={bestEntry ? bestEntry.steps.toLocaleString() : '—'}
+            sub={bestEntry ? new Date(bestEntry.date).toLocaleDateString('en', { weekday: 'long' }) : 'No data yet'}
+            icon={<IconStar size={16} />} />
+          <Record theme={theme} label="Distance this month"
+            value={monthSteps > 0 ? (metric ? monthDistKm : (parseFloat(monthDistKm) * 0.621371).toFixed(1)) : '—'}
+            unit={monthSteps > 0 ? (metric ? 'km' : 'mi') : ''}
+            sub="this month" icon={<IconMap size={16} />} />
+          <Record theme={theme} label="Calories burned"
+            value={monthSteps > 0 ? monthCals : '—'}
+            sub="this month"
             icon={<IconFlame size={16} />} accent={theme.warm} />
-          <Record theme={theme} label="Active days" value="26/30" sub="86% consistency" icon={<IconCheck size={16} />} />
+          <Record theme={theme} label="Active days"
+            value={monthSteps > 0 ? `${activeDays}/${daysInMonth}` : '—'}
+            sub={monthSteps > 0 ? `${Math.round((activeDays / daysInMonth) * 100)}% consistency` : 'this month'}
+            icon={<IconCheck size={16} />} />
         </div>
-      </div>
-
-      <div style={{ padding: '20px 16px 0' }}>
-        <SectionHeader theme={theme} title="Pace breakdown" />
-        <Card theme={theme} padding={18}>
-          {[
-            { label: 'Brisk', mins: 142, pct: 0.42, color: theme.accent },
-            { label: 'Moderate', mins: 168, pct: 0.50, color: theme.accentDim },
-            { label: 'Leisure', mins: 28, pct: 0.08, color: theme.borderStrong },
-          ].map((r, i) => (
-            <div key={i} style={{ marginBottom: i < 2 ? 14 : 0 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, ...TYPE.sans, fontSize: 12, color: theme.text }}>
-                <span>{r.label}</span>
-                <span style={{ ...TYPE.mono, color: theme.textDim }}>{r.mins} min · {Math.round(r.pct * 100)}%</span>
-              </div>
-              <div style={{ height: 5, background: theme.borderStrong, borderRadius: 3, overflow: 'hidden' }}>
-                <div style={{ width: `${r.pct * 100}%`, height: '100%', background: r.color, borderRadius: 3 }} />
-              </div>
-            </div>
-          ))}
-        </Card>
       </div>
     </div>
   );

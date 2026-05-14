@@ -22,12 +22,23 @@ export function useFriends(userId) {
       f.requester_id === userId ? f.addressee_id : f.requester_id,
     );
 
-    const { data: reqs } = await supabase
+    const { data: reqRows } = await supabase
       .from('friendships')
-      .select('id, requester_id, profiles:requester_id(display_name)')
+      .select('id, requester_id')
       .eq('addressee_id', userId)
       .eq('status', 'pending');
-    setPending(reqs ?? []);
+
+    if (reqRows?.length) {
+      const requesterIds = reqRows.map(r => r.requester_id);
+      const { data: reqProfiles } = await supabase
+        .from('profiles')
+        .select('id, display_name')
+        .in('id', requesterIds);
+      const profileMap = Object.fromEntries((reqProfiles ?? []).map(p => [p.id, p]));
+      setPending(reqRows.map(r => ({ ...r, profiles: profileMap[r.requester_id] ?? null })));
+    } else {
+      setPending([]);
+    }
 
     if (friendIds.length === 0) {
       setFriends([]);

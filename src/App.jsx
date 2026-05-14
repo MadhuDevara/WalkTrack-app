@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useTheme, TYPE } from './theme.js';
 import { BottomNav } from './atoms.jsx';
 import { HomeScreen } from './screens/HomeScreen.jsx';
@@ -143,6 +143,22 @@ function MainApp({ session, profile, signOut, updateProfile }) {
   }, [liveSteps]);
 
   const { history: stepsHistory } = useSupabaseSteps(userId, tweaks.currentSteps);
+
+  const restoredTodayRef = useRef(false);
+  useEffect(() => {
+    if (restoredTodayRef.current || !stepsHistory.length) return;
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const todayRow = stepsHistory.find(r => r.date === todayStr);
+    if (todayRow && todayRow.steps > 0) {
+      restoredTodayRef.current = true;
+      setTweaksState(prev =>
+        todayRow.steps > prev.currentSteps
+          ? { ...prev, currentSteps: todayRow.steps }
+          : prev,
+      );
+    }
+  }, [stepsHistory]);
+
   const { entries: weightEntries, logWeight } = useWeight(userId);
   const { friends, pending, loading: friendsLoading, sendFriendRequest, acceptRequest, declineRequest } = useFriends(userId);
 
