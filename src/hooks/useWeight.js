@@ -7,6 +7,7 @@ export function useWeight(userId) {
 
   const load = useCallback(async () => {
     if (!userId) return;
+    setEntries([]);
     setLoading(true);
     const since = new Date(Date.now() - 90 * 86400_000).toISOString().slice(0, 10);
     const { data } = await supabase

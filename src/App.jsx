@@ -38,19 +38,22 @@ function loadFromStorage() {
   return TWEAK_DEFAULTS;
 }
 
-function getTodayKey() {
-  return 'stride:steps:' + new Date().toISOString().slice(0, 10);
+function getTodayStepsKey(userId) {
+  if (!userId) return '';
+  return `stride:steps:${userId}:${new Date().toISOString().slice(0, 10)}`;
 }
 
-function loadTodaySteps() {
+function loadTodaySteps(userId) {
+  if (!userId) return 0;
   try {
-    const v = localStorage.getItem(getTodayKey());
+    const v = localStorage.getItem(getTodayStepsKey(userId));
     return v ? parseInt(v, 10) : 0;
   } catch (_) { return 0; }
 }
 
-function saveTodaySteps(steps) {
-  try { localStorage.setItem(getTodayKey(), String(steps)); } catch (_) {}
+function saveTodaySteps(userId, steps) {
+  if (!userId) return;
+  try { localStorage.setItem(getTodayStepsKey(userId), String(steps)); } catch (_) {}
 }
 
 const PALETTES = [
@@ -94,7 +97,7 @@ function MainApp({ session, profile, signOut, updateProfile }) {
 
   const [tweaks, setTweaksState] = useState(() => {
     const saved = loadFromStorage();
-    return { ...saved, currentSteps: loadTodaySteps() };
+    return { ...saved, currentSteps: loadTodaySteps(userId) };
   });
   const [screen, setScreen] = useState('home');
   const [isMobileViewport, setIsMobileViewport] = useState(
@@ -129,15 +132,15 @@ function MainApp({ session, profile, signOut, updateProfile }) {
     try {
       const { currentSteps, ...settings } = tweaks;
       localStorage.setItem('stride:settings', JSON.stringify(settings));
-      saveTodaySteps(currentSteps);
+      saveTodaySteps(userId, currentSteps);
     } catch (_) {}
-  }, [tweaks]);
+  }, [tweaks, userId]);
 
   const setTweak = useCallback((key, value) => {
     setTweaksState(prev => ({ ...prev, [key]: value }));
   }, []);
 
-  const { steps: liveSteps, permission, requestPermission } = usePedometer(tweaks.hasOnboarded);
+  const { steps: liveSteps, permission, requestPermission } = usePedometer(tweaks.hasOnboarded, userId);
   useEffect(() => {
     setTweaksState(prev => prev.currentSteps === liveSteps ? prev : { ...prev, currentSteps: liveSteps });
   }, [liveSteps]);
@@ -145,6 +148,10 @@ function MainApp({ session, profile, signOut, updateProfile }) {
   const { history: stepsHistory } = useSupabaseSteps(userId, tweaks.currentSteps);
 
   const restoredTodayRef = useRef(false);
+  useEffect(() => {
+    restoredTodayRef.current = false;
+  }, [userId]);
+
   useEffect(() => {
     if (restoredTodayRef.current || !stepsHistory.length) return;
     const todayStr = new Date().toISOString().slice(0, 10);

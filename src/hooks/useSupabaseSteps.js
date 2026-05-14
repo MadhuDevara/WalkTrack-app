@@ -11,7 +11,9 @@ export function useSupabaseSteps(userId, localSteps) {
 
   useEffect(() => {
     if (!userId) return;
+    setHistory([]);
     const since = new Date(Date.now() - 365 * 86400_000).toISOString().slice(0, 10);
+    let cancelled = false;
     supabase
       .from('steps_log')
       .select('date, steps')
@@ -19,8 +21,12 @@ export function useSupabaseSteps(userId, localSteps) {
       .gte('date', since)
       .order('date', { ascending: true })
       .then(({ data }) => {
-        if (data) setHistory(data);
+        if (!cancelled && data) setHistory(data);
       });
+    return () => {
+      cancelled = true;
+      clearTimeout(saveTimer.current);
+    };
   }, [userId]);
 
   const saveSteps = useCallback(

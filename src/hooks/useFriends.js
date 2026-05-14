@@ -11,6 +11,8 @@ export function useFriends(userId) {
   const load = useCallback(async () => {
     if (!userId) return;
     setLoading(true);
+    setFriends([]);
+    setPending([]);
 
     const { data: friendships } = await supabase
       .from('friendships')
