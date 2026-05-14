@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { TYPE } from '../theme.js';
 import { AppBar, IconButton, Card, SectionHeader } from '../atoms.jsx';
-import { IconArrowLeft, IconMore, IconPlus } from '../icons.jsx';
+import { IconArrowLeft, IconPlus } from '../icons.jsx';
 
 export function WeightScreen({ tweaks, theme, nav, weightEntries = [], onLogWeight, profile }) {
   const { metric } = tweaks;
@@ -9,34 +9,41 @@ export function WeightScreen({ tweaks, theme, nav, weightEntries = [], onLogWeig
   const [showLogModal, setShowLogModal] = useState(false);
   const [inputVal, setInputVal] = useState('');
   const [saving, setSaving] = useState(false);
+  const [chartRange, setChartRange] = useState('6W');
 
   const toDisplay = kg => metric ? kg : +(kg * 2.20462).toFixed(1);
 
-  const weightData = weightEntries.length >= 2
-    ? weightEntries.slice(-7).map((e, i, arr) => ({
+  const RANGES = ['6W', '3M', 'All'];
+  const rangeDays = { '6W': 42, '3M': 90, 'All': Infinity };
+
+  const filteredEntries = weightEntries.filter(e => {
+    const days = rangeDays[chartRange];
+    if (!isFinite(days)) return true;
+    const cutoff = new Date(Date.now() - days * 86400_000).toISOString().slice(0, 10);
+    return e.date >= cutoff;
+  });
+
+  const weightData = filteredEntries.length >= 2
+    ? filteredEntries.map((e, i, arr) => ({
       d: i === arr.length - 1 ? 'Today' : new Date(e.date).toLocaleDateString('en', { month: 'short', day: 'numeric' }),
       w: toDisplay(e.weight_kg),
     }))
-    : [
-      { d: 'Apr 1', w: toDisplay(72.4) },
-      { d: 'Apr 8', w: toDisplay(71.8) },
-      { d: 'Apr 15', w: toDisplay(71.0) },
-      { d: 'Apr 22', w: toDisplay(70.2) },
-      { d: 'Apr 29', w: toDisplay(69.4) },
-      { d: 'May 6', w: toDisplay(68.6) },
-      { d: 'Today', w: toDisplay(68.4) },
-    ];
+    : weightEntries.length === 1
+      ? [{ d: 'Today', w: toDisplay(weightEntries[0].weight_kg) }]
+      : null;
 
-  const currentKg = weightEntries.length ? weightEntries[weightEntries.length - 1].weight_kg : 68.4;
-  const startKg = profile?.start_weight || (weightEntries.length ? weightEntries[0].weight_kg : 72.4);
-  const goalKg = profile?.goal_weight || 58.8;
+  const currentKg = weightEntries.length ? weightEntries[weightEntries.length - 1].weight_kg : null;
+  const startKg = profile?.start_weight || (weightEntries.length ? weightEntries[0].weight_kg : null);
+  const goalKg = profile?.goal_weight || null;
 
-  const current = toDisplay(currentKg);
-  const start = toDisplay(startKg);
-  const goal = toDisplay(goalKg);
-  const lost = Math.abs(start - current).toFixed(1);
-  const remaining = Math.abs(current - goal).toFixed(1);
-  const pct = startKg !== goalKg ? Math.min(100, ((startKg - currentKg) / (startKg - goalKg)) * 100) : 0;
+  const current = currentKg != null ? toDisplay(currentKg) : null;
+  const start = startKg != null ? toDisplay(startKg) : null;
+  const goal = goalKg != null ? toDisplay(goalKg) : null;
+  const lost = (current != null && start != null) ? Math.abs(start - current).toFixed(1) : null;
+  const remaining = (current != null && goal != null) ? Math.abs(current - goal).toFixed(1) : null;
+  const pct = (startKg != null && goalKg != null && startKg !== goalKg && currentKg != null)
+    ? Math.min(100, Math.max(0, ((startKg - currentKg) / (startKg - goalKg)) * 100))
+    : 0;
 
   async function handleLog() {
     const kg = metric ? parseFloat(inputVal) : parseFloat(inputVal) / 2.20462;
@@ -53,26 +60,32 @@ export function WeightScreen({ tweaks, theme, nav, weightEntries = [], onLogWeig
       <AppBar theme={theme}
         leading={<IconButton theme={theme} variant="soft" onClick={() => nav('home')}><IconArrowLeft size={16} color={theme.text} /></IconButton>}
         title="Weight loss"
-        trailing={<IconButton theme={theme} variant="soft"><IconMore size={16} color={theme.text} /></IconButton>}
       />
 
       <div style={{ padding: '8px 22px 18px', textAlign: 'center' }}>
         <div style={{ ...TYPE.sans, fontSize: 11, letterSpacing: '0.18em', color: theme.textDim, textTransform: 'uppercase' }}>Current weight</div>
         <div style={{ ...TYPE.display, fontSize: 72, lineHeight: 1, color: theme.text, marginTop: 6, display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 6 }}>
-          {current}
+          {current != null ? current : '—'}
           <span style={{ ...TYPE.mono, fontSize: 18, color: theme.textDim, fontWeight: 400 }}>{u}</span>
         </div>
-        <div style={{ ...TYPE.serif, fontSize: 14, fontStyle: 'italic', color: theme.accent, marginTop: 6 }}>
-          −{lost}{u} since April · trending healthy
-        </div>
+        {lost != null && parseFloat(lost) > 0 && (
+          <div style={{ ...TYPE.serif, fontSize: 14, fontStyle: 'italic', color: theme.accent, marginTop: 6 }}>
+            −{lost} {u} lost so far · keep going
+          </div>
+        )}
+        {current == null && (
+          <div style={{ ...TYPE.serif, fontSize: 14, fontStyle: 'italic', color: theme.textDim, marginTop: 6 }}>
+            Log your weight to start tracking
+          </div>
+        )}
       </div>
 
       <div style={{ padding: '0 16px 8px' }}>
         <Card theme={theme} padding={16}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10, ...TYPE.sans, fontSize: 11, color: theme.textDim, letterSpacing: '0.04em' }}>
-            <span>Start <strong style={{ color: theme.text }}>{start}{u}</strong></span>
+            <span>Start <strong style={{ color: theme.text }}>{start != null ? start + u : '—'}</strong></span>
             <span style={{ color: theme.accent }}>{Math.round(pct)}% there</span>
-            <span>Goal <strong style={{ color: theme.text }}>{goal}{u}</strong></span>
+            <span>Goal <strong style={{ color: theme.text }}>{goal != null ? goal + u : '—'}</strong></span>
           </div>
           <div style={{ position: 'relative', height: 8 }}>
             <div style={{ position: 'absolute', inset: 0, borderRadius: 4, background: theme.borderStrong }} />
@@ -80,16 +93,34 @@ export function WeightScreen({ tweaks, theme, nav, weightEntries = [], onLogWeig
             <div style={{ position: 'absolute', left: `${pct}%`, top: -4, width: 16, height: 16, borderRadius: '50%', background: theme.accent, transform: 'translateX(-50%)', boxShadow: `0 0 0 4px ${theme.bg}` }} />
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 10, ...TYPE.mono, fontSize: 11, color: theme.textDim }}>
-            <span>{lost}{u} lost</span>
-            <span>{remaining}{u} to go</span>
+            <span>{lost != null ? lost + u + ' lost' : 'No data yet'}</span>
+            <span>{remaining != null ? remaining + u + ' to go' : ''}</span>
           </div>
         </Card>
       </div>
 
       <div style={{ padding: '14px 16px 0' }}>
-        <SectionHeader theme={theme} title="Weight trend · 6 weeks" action="3M · 6M · 1Y" />
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', padding: '4px 4px 10px' }}>
+          <div style={{ ...TYPE.sans, fontSize: 11, letterSpacing: '0.2em', color: theme.textDim, textTransform: 'uppercase', fontWeight: 500 }}>Weight trend</div>
+          <div style={{ display: 'flex', gap: 4 }}>
+            {RANGES.map(r => (
+              <button key={r} onClick={() => setChartRange(r)} style={{
+                padding: '4px 10px', borderRadius: 8, border: 'none', cursor: 'pointer',
+                background: chartRange === r ? theme.accent : theme.surface,
+                color: chartRange === r ? theme.bg : theme.textDim,
+                ...TYPE.sans, fontSize: 11, fontWeight: 500,
+              }}>{r}</button>
+            ))}
+          </div>
+        </div>
         <Card theme={theme} padding={18}>
-          <WeightLineChart data={weightData} theme={theme} u={u} goal={goal} />
+          {weightData && weightData.length >= 2 ? (
+            <WeightLineChart data={weightData} theme={theme} u={u} goal={goal} />
+          ) : (
+            <div style={{ textAlign: 'center', ...TYPE.sans, fontSize: 13, color: theme.textDim, padding: '16px 0' }}>
+              Log at least 2 entries to see your trend
+            </div>
+          )}
         </Card>
       </div>
 

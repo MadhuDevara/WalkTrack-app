@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { TYPE } from '../theme.js';
 import { AppBar, IconButton, Card, SectionHeader, BarChart, Pill } from '../atoms.jsx';
-import { IconCalendar, IconMap, IconFlame, IconCheck, IconStar, IconArrowUp } from '../icons.jsx';
+import { IconMap, IconFlame, IconCheck, IconStar, IconArrowUp } from '../icons.jsx';
 
 export function HistoryScreen({ tweaks, theme, stepsHistory = [] }) {
   const { metric, stepGoal } = tweaks;
@@ -86,7 +86,7 @@ export function HistoryScreen({ tweaks, theme, stepsHistory = [] }) {
     <div style={{ background: theme.bg, color: theme.text, minHeight: '100%', paddingBottom: 24 }}>
       <AppBar theme={theme} large title="Trends" subtitle={tab === 'year' ? 'Last 12 months' : tab === 'month' ? 'Last 30 days' : 'Last 7 days'}
         leading={null}
-        trailing={<IconButton theme={theme} variant="soft"><IconCalendar size={16} color={theme.text} /></IconButton>}
+        trailing={null}
       />
 
       <div style={{ padding: '4px 16px 16px' }}>

@@ -1,8 +1,8 @@
 import { TYPE } from '../theme.js';
 import { AppBar, IconButton, Card, SectionHeader, LinearProgress } from '../atoms.jsx';
 import {
-  IconArrowLeft, IconMore, IconFire, IconLeaf, IconShield, IconTrophy,
-  IconCrown, IconBolt, IconLock, IconStar, IconScale,
+  IconArrowLeft, IconFire, IconLeaf, IconShield, IconTrophy,
+  IconCrown, IconBolt, IconLock, IconStar,
 } from '../icons.jsx';
 
 function computeStreak(history, goal) {
@@ -65,7 +65,6 @@ export function AchievementsScreen({ tweaks, theme, nav, stepsHistory = [] }) {
       <AppBar theme={theme}
         leading={<IconButton theme={theme} variant="soft" onClick={() => nav('home')}><IconArrowLeft size={16} color={theme.text} /></IconButton>}
         title="Achievements"
-        trailing={<IconButton theme={theme} variant="soft"><IconMore size={16} color={theme.text} /></IconButton>}
       />
 
       <div style={{ padding: '8px 16px 18px' }}>

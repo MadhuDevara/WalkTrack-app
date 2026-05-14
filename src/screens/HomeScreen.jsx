@@ -141,7 +141,7 @@ export function HomeScreen({ tweaks, theme, nav, stepsHistory = [], weightEntrie
       </div>
 
       <div style={{ padding: '20px 16px 0' }}>
-        <SectionHeader theme={theme} title="Weekly steps" action="Trends →" />
+        <SectionHeader theme={theme} title="Weekly steps" action="Trends →" onAction={() => nav('history')} />
         <Card theme={theme} padding={16}>
           {weeklyReal.length > 0 ? (
             <>
@@ -178,7 +178,7 @@ export function HomeScreen({ tweaks, theme, nav, stepsHistory = [], weightEntrie
 
       {showWeightPanel && (
         <div style={{ padding: '20px 16px 0' }}>
-          <SectionHeader theme={theme} title="Weight loss" action="Open →" />
+          <SectionHeader theme={theme} title="Weight loss" action="Open →" onAction={() => nav('weight')} />
           <Card theme={theme} padding={0} onClick={() => nav('weight')} style={{ overflow: 'hidden' }}>
             {recentWeight != null ? (
               <>
