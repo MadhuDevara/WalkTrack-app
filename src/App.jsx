@@ -30,10 +30,25 @@ const TWEAK_DEFAULTS = {
   joinDate: '',
 };
 
-function loadFromStorage() {
+function settingsStorageKey(userId) {
+  return `WalkTrack:settings:${userId}`;
+}
+
+function loadFromStorage(userId) {
+  if (!userId) return TWEAK_DEFAULTS;
   try {
-    const saved = localStorage.getItem('WalkTrack:settings');
-    if (saved) return { ...TWEAK_DEFAULTS, ...JSON.parse(saved) };
+    let raw = localStorage.getItem(settingsStorageKey(userId));
+    if (!raw) {
+      const legacy = localStorage.getItem('WalkTrack:settings');
+      if (legacy) {
+        raw = legacy;
+        try {
+          localStorage.removeItem('WalkTrack:settings');
+          localStorage.setItem(settingsStorageKey(userId), legacy);
+        } catch (_) {}
+      }
+    }
+    if (raw) return { ...TWEAK_DEFAULTS, ...JSON.parse(raw) };
   } catch (_) {}
   return TWEAK_DEFAULTS;
 }
@@ -65,7 +80,7 @@ const PALETTES = [
 ];
 
 export default function App() {
-  const { session, profile, signUp, signIn, signOut, updateProfile, loading: authLoading } = useAuth();
+  const { session, profile, signUp, signIn, signInWithGoogle, signOut, updateProfile, loading: authLoading } = useAuth();
   const darkTheme = useTheme(true, TWEAK_DEFAULTS.palette);
 
   if (authLoading) {
@@ -83,20 +98,28 @@ export default function App() {
     return (
       <div style={{ fontFamily: '"Inter Tight", system-ui, sans-serif', minHeight: '100vh', background: darkTheme.bg }}>
         <div style={{ maxWidth: 420, margin: '0 auto', minHeight: '100vh' }}>
-          <AuthScreen theme={darkTheme} onAuth={handleAuth} />
+          <AuthScreen theme={darkTheme} onAuth={handleAuth} onGoogleAuth={signInWithGoogle} />
         </div>
       </div>
     );
   }
 
-  return <MainApp session={session} profile={profile} signOut={signOut} updateProfile={updateProfile} />;
+  return (
+    <MainApp
+      key={session.user.id}
+      session={session}
+      profile={profile}
+      signOut={signOut}
+      updateProfile={updateProfile}
+    />
+  );
 }
 
 function MainApp({ session, profile, signOut, updateProfile }) {
   const userId = session.user.id;
 
   const [tweaks, setTweaksState] = useState(() => {
-    const saved = loadFromStorage();
+    const saved = loadFromStorage(userId);
     return { ...saved, currentSteps: loadTodaySteps(userId) };
   });
   const [screen, setScreen] = useState('home');
@@ -131,7 +154,7 @@ function MainApp({ session, profile, signOut, updateProfile }) {
   useEffect(() => {
     try {
       const { currentSteps, ...settings } = tweaks;
-      localStorage.setItem('WalkTrack:settings', JSON.stringify(settings));
+      localStorage.setItem(settingsStorageKey(userId), JSON.stringify(settings));
       saveTodaySteps(userId, currentSteps);
     } catch (_) {}
   }, [tweaks, userId]);
@@ -245,7 +268,7 @@ function MainApp({ session, profile, signOut, updateProfile }) {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 32, flexWrap: 'wrap', width: '100%' }}>
         {isMobileViewport ? (
           <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', width: '100%', background: theme.bg, color: theme.text }}>
-            <div className="WalkTrack-scroll" style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
+            <div className="WalkTrack-scroll" style={{ flex: 1, overflow: 'auto', minHeight: 0, paddingBottom: showBottomNav ? 64 : 0, boxSizing: 'border-box' }}>
               <Cur {...screenProps} />
             </div>
             {showBottomNav && (
@@ -257,7 +280,7 @@ function MainApp({ session, profile, signOut, updateProfile }) {
           <>
             <DeviceShell theme={theme} dark={tweaks.dark}>
               <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: theme.bg, color: theme.text }}>
-                <div className="WalkTrack-scroll" style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
+                <div className="WalkTrack-scroll" style={{ flex: 1, overflow: 'auto', minHeight: 0, paddingBottom: showBottomNav ? 64 : 0, boxSizing: 'border-box' }}>
                   <Cur {...screenProps} />
                 </div>
                 {showBottomNav && (
